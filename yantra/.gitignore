@@ -1,7 +1,89 @@
+# Yantra-specific ignores. The workspace-level /.gitignore covers most
+# generic patterns (node_modules, dist, env files, OS junk); this file
+# layers on Astro / Bun / Three.js specifics.
+
+# Build outputs
 node_modules/
 dist/
 .astro/
 .turbo/
+.next/
+.vite/
+.cache/
+.output/
+build/
+out/
+
+# Bun / npm / pnpm runtime junk
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/install-state.gz
+.yarn/build-state.yml
+.bun/
+
+# Astro generated content collections + sync files (everything except hand-checked content)
+apps/*/.astro/
+apps/*/dist/
+
+# Test + coverage
+coverage/
+.nyc_output/
+*.lcov
+test-results/
+playwright-report/
+playwright/.cache/
+playwright/test-results/
+
+# TypeScript caches
+*.tsbuildinfo
+.tscache/
+
+# Generated / scratch STL fixtures should stay in apps/*/public/fixtures
+# (those are checked in). Catch any STL droppings outside that path.
+/*.stl
+/scratch-*.stl
+
+# Local solver bench output
+/bench/*.csv
+/bench/*.json
+/bench/results/
+
+# Logs
 *.log
-.DS_Store
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+bun-debug.log*
+lerna-debug.log*
+
+# Env + local secrets
 .env
+.env.*
+!.env.example
+*.local
+
+# Editor / IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Lockfiles — bun.lock is checked in; ignore stray npm/yarn/pnpm copies
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Misc
+*.tgz
+*.tmp
