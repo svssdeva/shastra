@@ -23,16 +23,23 @@ impl Default for Trishul {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct ProcessTreeArgs {
-    /// Root PID for the tree. Defaults to 1 (init).
+    /// Root PID for the tree. Defaults to 1 on Linux/macOS (init/launchd) or 0 on Windows.
     #[serde(default = "default_root_pid")]
-    pub root_pid: i32,
+    pub root_pid: u32,
     /// Hard cap on number of nodes returned. Defaults to 5000.
     #[serde(default = "default_max_nodes")]
     pub max_nodes: usize,
 }
 
-fn default_root_pid() -> i32 {
-    1
+fn default_root_pid() -> u32 {
+    #[cfg(target_os = "windows")]
+    {
+        0
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        1
+    }
 }
 fn default_max_nodes() -> usize {
     5000
@@ -57,7 +64,7 @@ fn default_limit() -> usize {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct ProcessDetailArgs {
-    pub pid: i32,
+    pub pid: u32,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -138,11 +145,22 @@ impl Trishul {
     }
 
     #[tool(
-        description = "USB devices attached to the host with vendor / product names resolved from usb.ids."
+        description = "USB devices attached to the host with vendor / product names resolved from usb.ids. Linux only — returns an unsupported error on macOS and Windows (libusb-based cross-platform backend is future work)."
     )]
     async fn usb_devices(&self) -> Result<CallToolResult, McpError> {
-        let out = collectors::usb::collect_usb_devices().map_err(map_err)?;
-        Ok(into_call_result(out))
+        #[cfg(target_os = "linux")]
+        {
+            let out = collectors::usb::collect_usb_devices().map_err(map_err)?;
+            Ok(into_call_result(out))
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            Err(McpError::internal_error(
+                "usb_devices is currently Linux-only (reads /sys/bus/usb). \
+                 A libusb-based macOS/Windows backend is future work — see project README.",
+                None,
+            ))
+        }
     }
 
     #[tool(

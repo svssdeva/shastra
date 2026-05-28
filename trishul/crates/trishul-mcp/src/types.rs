@@ -50,6 +50,7 @@ pub enum TrishulError {
     BadArgs(String),
 }
 
+#[cfg(target_os = "linux")]
 impl From<procfs::ProcError> for TrishulError {
     fn from(e: procfs::ProcError) -> Self {
         TrishulError::Procfs(e.to_string())

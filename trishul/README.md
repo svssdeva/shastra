@@ -1,8 +1,8 @@
 # Trishul
 
-> A Rust MCP server that gives Claude a **body in your Linux machine** — live process tree, network listeners, USB topology, host info, **and an eBPF syscall trace** — without parsing `ps`/`ss`/`lsusb`/`strace` output.
+> A Rust MCP server that gives Claude a **body in your machine** — live process tree, network listeners, host info on Linux/macOS/Windows, plus USB topology and a **real eBPF syscall trace** on Linux — without parsing `ps`/`ss`/`lsusb`/`strace` output.
 
-> **Platform support:** **Linux only.** macOS and Windows are not supported and the binary will refuse to compile on those targets. macOS would need `sysctl` + `libproc` + IOKit backends; Windows would need ETW + PerfLib + WMI. Both are tracked as future work. See the [platform notes](#platform-support) below.
+> **Platform support:** 5 of 7 tools are cross-platform (Linux/macOS/Windows) via `sysinfo` + `netstat2`. `usb_devices` is Linux-only (reads `/sys/bus/usb`; a libusb backend for macOS/Windows is future work). `syscall_trace` is Linux-only (eBPF does not exist on macOS/Windows; the equivalents are DTrace and ETW respectively, both deferred).
 
 Most MCP servers in 2026 are CRUD-over-REST shims for SaaS APIs. Trishul is different: it streams **kernel-grade observability** straight into your assistant. Ask in plain English what's running, what's listening, what's plugged in. Claude calls the right tool, gets a structured JSON snapshot, and answers.
 
@@ -47,15 +47,17 @@ Full wiring guides (Claude Desktop, Claude Code, Cursor, Continue, Zed, Agent SD
 
 ## Tools
 
-| Tool | Needs | Returns |
-|---|---|---|
-| `host_info` | userspace | kernel, distro, uptime, load, memory, CPU count |
-| `process_tree` | userspace | nested tree from any PID with cmdline/exe/uid/RSS/threads |
-| `proc_snapshot` | userspace | top-N processes by RSS |
-| `process_detail` | userspace | one PID: status, exe, cwd, environment (when permitted) |
-| `network_listeners` | userspace | TCP/UDP LISTEN sockets resolved to owning PID |
-| `usb_devices` | userspace | USB topology with vendor/product names from usb.ids |
-| `syscall_trace` | **CAP_BPF + CAP_PERFMON** | eBPF tracepoint snapshot of per-PID syscall counts over a window |
+| Tool | Platforms | Needs | Returns |
+|---|---|---|---|
+| `host_info` | linux · macos · windows | userspace | kernel, distro, uptime, load, memory, CPU count + brand |
+| `process_tree` | linux · macos · windows | userspace | nested tree from any PID with cmdline/exe/uid/user/RSS/CPU/threads |
+| `proc_snapshot` | linux · macos · windows | userspace | top-N processes by RSS or CPU |
+| `process_detail` | linux · macos · windows | userspace | one PID: status, exe, cwd, environment (when permitted) |
+| `network_listeners` | linux · macos · windows | userspace | TCP/UDP LISTEN sockets resolved to owning PID |
+| `usb_devices` | **linux only** | userspace | USB topology with vendor/product names from usb.ids |
+| `syscall_trace` | **linux only** | **CAP_BPF + CAP_PERFMON** | eBPF tracepoint snapshot of per-PID syscall counts over a window |
+
+On macOS and Windows, the two Linux-only tools return a structured "unsupported on this OS" MCP error so the LLM can react cleanly instead of seeing a build-time failure or a confusing runtime panic.
 
 Full catalog with args + sample output: [`docs/TOOLS.md`](docs/TOOLS.md).
 
@@ -99,19 +101,29 @@ Future:
 
 Track progress: [implementation plan](../docs/superpowers/plans/2026-05-28-trishul.md).
 
-## Platform support
+## Platform support — how it works
 
-Linux only, today. The binary will fail to compile on macOS and Windows with a clear `compile_error!` pointing here. The reason is structural, not laziness:
+The five cross-platform tools share a single source path that abstracts over OS-level details through two production-grade crates:
 
-| Trishul tool | Linux backend | macOS equivalent | Windows equivalent |
-|---|---|---|---|
-| `host_info` | `/proc/{meminfo,loadavg,uptime}`, `uname()` | `sysctl`, `host_statistics64` | `GetSystemInfo`, `GlobalMemoryStatusEx` |
-| `process_tree` | `/proc/<pid>/{stat,status,cmdline}` | `proc_listpids` + `proc_pidinfo` (libproc) | `CreateToolhelp32Snapshot` |
-| `network_listeners` | `/proc/net/{tcp,udp}{,6}` | `netstat` shell-out or `libproc.proc_pidsocketinfo` | `GetExtendedTcpTable` / `GetExtendedUdpTable` |
-| `usb_devices` | `/sys/bus/usb/devices` | IOKit (`IOServiceMatching("IOUSBDevice")`) | SetupAPI (`SetupDiGetClassDevs`) |
-| `syscall_trace` | eBPF (`raw_syscalls/sys_enter`) | DTrace (deprecated, restricted on Apple Silicon) | ETW + `Microsoft-Windows-Kernel-System` provider |
+- **`sysinfo`** wraps `/proc` on Linux, `libproc` + `sysctl` on macOS, and the Windows Performance Data Helper on Windows behind one Rust API. Used by `host_info`, `process_tree`, `proc_snapshot`, and `process_detail`.
+- **`netstat2`** wraps `/proc/net/{tcp,udp}{,6}` on Linux, `libproc.proc_pidsocketinfo` on macOS, and `GetExtendedTcpTable` / `GetExtendedUdpTable` on Windows. Used by `network_listeners`.
 
-Cross-platform parity is a separate ~2–3 week project. The collector trait can abstract over the backends without touching the MCP surface, but each port requires real platform expertise and a fresh test matrix.
+The two Linux-only tools are honest exceptions:
+
+| Tool | Linux backend | Why no macOS/Windows |
+|---|---|---|
+| `usb_devices` | `/sys/bus/usb/devices` | A libusb-based portable backend is feasible (`rusb` crate) but adds a heavy native dep — tracked for future work. |
+| `syscall_trace` | eBPF (`raw_syscalls/sys_enter`) via `aya` | eBPF doesn't exist outside Linux. macOS DTrace is deprecated and SIP-restricted on Apple Silicon; Windows would need an ETW provider (`Microsoft-Windows-Kernel-System`). Both are 2-week projects on their own. |
+
+When the LLM calls one of these tools from a macOS or Windows host, it gets a structured "unsupported on this OS" MCP error pointing to this section. No silent failures, no crashes.
+
+### Compile-target verification
+
+```bash
+cargo check -p trishul-mcp                                       # native target (linux on this host)
+cargo check -p trishul-mcp --target x86_64-pc-windows-gnu        # Windows
+cargo check -p trishul-mcp --target x86_64-apple-darwin          # macOS — requires SDK headers locally
+```
 
 ## Develop
 

@@ -126,7 +126,14 @@ After that, `syscall_trace` works with no `sudo` at runtime — the file capabil
 
 ## 7b. Platform
 
-**Trishul is Linux-only.** The binary will fail to compile on macOS or Windows with a clear `compile_error!`. If you're a Mac or Windows user and want this, the project README has a table of equivalent native APIs that a future backend would need to use.
+Trishul builds and runs on Linux, macOS, and Windows. Five of the seven tools (`host_info`, `process_tree`, `proc_snapshot`, `process_detail`, `network_listeners`) are fully cross-platform via the `sysinfo` and `netstat2` crates.
+
+The two Linux-only tools are:
+
+- **`usb_devices`** — Linux reads `/sys/bus/usb`. The crossplat libusb backend is tracked but not shipped.
+- **`syscall_trace`** — eBPF doesn't exist outside Linux. Equivalents (DTrace on macOS, ETW on Windows) are deferred.
+
+When invoked on macOS or Windows, those two tools return a structured MCP error so the LLM can react cleanly.
 
 ## 8. Stopping & uninstalling
 

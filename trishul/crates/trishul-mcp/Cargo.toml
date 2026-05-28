@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
-description = "MCP server giving Claude live Linux observability (processes, network, USB, GPU)."
+description = "MCP server giving Claude live OS observability (processes, network, host info) across Linux/macOS/Windows, plus eBPF syscall tracing on Linux."
 
 [[bin]]
 name = "trishul-mcp"
@@ -21,10 +21,13 @@ anyhow = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 clap = { workspace = true }
+sysinfo = { workspace = true }
+netstat2 = { workspace = true }
+
+# Linux-only specialised paths: procfs reads, USB sysfs, eBPF.
+[target.'cfg(target_os = "linux")'.dependencies]
 procfs = { workspace = true }
 nix = { workspace = true }
-
-[target.'cfg(target_os = "linux")'.dependencies]
 aya = { workspace = true }
 aya-log = { workspace = true }
 

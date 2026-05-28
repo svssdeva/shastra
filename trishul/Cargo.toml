@@ -25,6 +25,8 @@ procfs = "0.17"
 nix = { version = "0.30", features = ["feature", "fs", "user"] }
 aya = "0.13"
 aya-log = "0.2"
+sysinfo = "0.39"
+netstat2 = "0.11"
 
 [profile.release]
 strip = "symbols"

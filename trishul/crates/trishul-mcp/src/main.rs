@@ -1,15 +1,3 @@
-#![cfg_attr(
-    not(target_os = "linux"),
-    deny(unused),
-    allow(unused_imports, dead_code, unused_variables)
-)]
-
-#[cfg(not(target_os = "linux"))]
-compile_error!(
-    "trishul-mcp is currently Linux-only. macOS and Windows backends are not yet implemented \
-     because the collectors rely on /proc, /sys, and eBPF. Track support at the project README."
-);
-
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use rmcp::ServiceExt;
@@ -67,6 +55,7 @@ fn selftest(only: Option<String>) -> Result<()> {
         ("proc_snapshot", run_proc_snapshot),
         ("process_detail_self", run_process_detail_self),
         ("network_listeners", run_network_listeners),
+        #[cfg(target_os = "linux")]
         ("usb_devices", run_usb_devices),
         #[cfg(target_os = "linux")]
         ("syscall_trace", run_syscall_trace),
@@ -100,7 +89,8 @@ fn run_host_info() -> Result<()> {
 }
 
 fn run_process_tree() -> Result<()> {
-    let out = collectors::proc::collect_process_tree(1, 200)?;
+    let pid = std::process::id();
+    let out = collectors::proc::collect_process_tree(pid, 200)?;
     println!("  · {}", out.summary);
     Ok(())
 }
@@ -112,7 +102,7 @@ fn run_proc_snapshot() -> Result<()> {
 }
 
 fn run_process_detail_self() -> Result<()> {
-    let pid = std::process::id() as i32;
+    let pid = std::process::id();
     let out = collectors::proc::collect_process_detail(pid)?;
     println!("  · {}", out.summary);
     Ok(())
@@ -124,6 +114,7 @@ fn run_network_listeners() -> Result<()> {
     Ok(())
 }
 
+#[cfg(target_os = "linux")]
 fn run_usb_devices() -> Result<()> {
     let out = collectors::usb::collect_usb_devices()?;
     println!("  · {}", out.summary);
