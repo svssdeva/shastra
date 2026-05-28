@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState } from 'preact/hooks';
 
 interface Props {
   onStl: (buf: ArrayBuffer, name: string) => void;
@@ -7,7 +7,8 @@ interface Props {
 export function StlDropZone({ onStl }: Props) {
   const [hover, setHover] = useState(false);
   const onDrop = useCallback(
-    async (e: React.DragEvent) => {
+    async (e: DragEvent) => {
+      if (!e.dataTransfer) return;
       e.preventDefault();
       setHover(false);
       const file = e.dataTransfer.files?.[0];
@@ -23,24 +24,16 @@ export function StlDropZone({ onStl }: Props) {
   );
   return (
     <div
+      className={`dropzone${hover ? ' hover' : ''}`}
       onDragOver={(e) => {
         e.preventDefault();
         setHover(true);
       }}
       onDragLeave={() => setHover(false)}
       onDrop={onDrop}
-      style={{
-        border: `2px dashed ${hover ? '#fce459' : '#444'}`,
-        background: hover ? '#1a1a25' : '#15151c',
-        padding: '1.5rem',
-        borderRadius: '0.4rem',
-        textAlign: 'center',
-        color: '#9aa',
-        margin: '0.5rem 0 1rem',
-        transition: 'all 80ms',
-      }}
     >
-      Drop an STL here
+      <span className="caption-uppercase">STL</span>
+      <span className="body">Drop a file here, or pick a fixture →</span>
     </div>
   );
 }

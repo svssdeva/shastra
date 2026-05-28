@@ -1,4 +1,5 @@
 ---
+import '../styles/tokens.css';
 const title = 'Yantra · WebGPU heat simulation in your browser';
 ---
 <html lang="en">
@@ -9,29 +10,339 @@ const title = 'Yantra · WebGPU heat simulation in your browser';
   <meta property="og:title" content="Yantra" />
   <meta property="og:description" content="WebGPU finite-element heat simulation, in a browser tab." />
   <style>
-    :root { color-scheme: dark; }
-    body { font: 16px/1.6 system-ui, sans-serif; max-width: 720px; margin: 0 auto; padding: 4rem 1.5rem; background: #0b0b10; color: #e7e7ea; }
-    h1 { font-size: 3.5rem; margin: 0 0 0.5rem; letter-spacing: -0.03em; }
-    h1 span { background: linear-gradient(120deg, #ff7a59, #fce459); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    p.lede { font-size: 1.2rem; color: #b9b9c2; margin: 0 0 2rem; }
-    a.cta { display: inline-block; padding: 0.85rem 1.4rem; background: #fce459; color: #0b0b10; text-decoration: none; border-radius: 0.4rem; font-weight: 700; }
-    .fixtures { margin-top: 3rem; }
-    .fixtures a { display: block; padding: 1rem; margin: 0.5rem 0; background: #15151c; border-radius: 0.4rem; color: #e7e7ea; text-decoration: none; border: 1px solid #21212a; }
-    .fixtures a:hover { background: #1c1c26; border-color: #2c2c38; }
-    footer { margin-top: 4rem; color: #6a6a78; font-size: 0.85em; }
-    code { background: #15151c; padding: 0.1em 0.35em; border-radius: 0.2rem; font-size: 0.9em; }
+    main { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+    section { padding: var(--space-section) 0; border-bottom: 1px solid var(--color-hairline); }
+    section:last-of-type { border-bottom: 0; }
+
+    .hero { display: grid; grid-template-columns: 7fr 5fr; gap: var(--space-xl); align-items: center; }
+    .hero p.lede { font-size: 18px; color: var(--color-body); margin: var(--space-md) 0 var(--space-xl); max-width: 36ch; }
+    .hero .cta-row { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
+    .hero .eyebrow { display: inline-flex; gap: 8px; align-items: center; margin-bottom: var(--space-md); }
+
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-xl); padding: var(--space-section) 0; border-top: 1px solid var(--color-hairline); }
+    .stats .stat-label { max-width: 22ch; }
+
+    .fixtures-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); }
+    .fixture-card {
+      background: var(--color-surface-card);
+      border: 1px solid var(--color-hairline);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      transition: border-color 80ms ease;
+      display: block;
+    }
+    .fixture-card:hover { border-color: var(--color-hairline-strong); }
+    .fixture-card.yellow {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+    }
+    .fixture-card .caption-uppercase { margin-bottom: var(--space-md); }
+    .fixture-card.yellow .caption-uppercase { color: var(--color-on-primary); opacity: 0.6; }
+    .fixture-card h3 { font-size: 24px; line-height: 1.3; letter-spacing: -0.3px; margin-bottom: var(--space-xs); }
+    .fixture-card.yellow h3 { color: var(--color-on-primary); }
+    .fixture-card p { font-size: 14px; color: var(--color-body); margin: 0 0 var(--space-lg); }
+    .fixture-card.yellow p { color: var(--color-on-primary); opacity: 0.8; }
+    .fixture-card .arrow { font-weight: 600; color: var(--color-primary); }
+    .fixture-card.yellow .arrow { color: var(--color-on-primary); }
+
+    .cta-band {
+      background: var(--color-primary);
+      color: var(--color-on-primary);
+      border-radius: var(--radius-lg);
+      padding: 64px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-xl);
+    }
+    .cta-band h2 { color: var(--color-on-primary); font-size: 40px; line-height: 1.15; letter-spacing: -1.5px; max-width: 18ch; }
+    .btn-on-yellow {
+      background: var(--color-on-primary);
+      color: var(--color-primary);
+      border: 0;
+      height: 48px;
+      padding: 0 24px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .support-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-md);
+      margin-top: var(--space-xl);
+    }
+    .support-card {
+      background: var(--color-surface-card);
+      border: 1px solid var(--color-hairline);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+    }
+    .support-card h3 {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0;
+      margin-bottom: var(--space-sm);
+      color: var(--color-on-dark);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .support-card h3 .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .support-card h3 .ok { background: var(--color-accent-emerald); }
+    .support-card h3 .partial { background: var(--color-primary); }
+    .support-card h3 .no { background: var(--color-accent-rose); }
+
+    .support-list { list-style: none; padding: 0; margin: 0; }
+    .support-list li {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: var(--space-sm);
+      padding: 8px 0;
+      border-top: 1px solid var(--color-hairline);
+      font-size: 13px;
+    }
+    .support-list li:first-child { border-top: 0; padding-top: 0; }
+    .support-list .row-label { color: var(--color-body); }
+    .support-list .row-value { color: var(--color-muted); font-family: var(--font-mono); font-size: 12px; }
+    .support-list .row-value.ok { color: var(--color-accent-emerald); }
+    .support-list .row-value.partial { color: var(--color-primary); }
+    .support-list .row-value.no { color: var(--color-accent-rose); }
+
+    .warning-band {
+      margin-top: var(--space-xl);
+      background: var(--color-surface-soft);
+      border: 1px solid var(--color-hairline);
+      border-left: 3px solid var(--color-primary);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: var(--space-md);
+      align-items: flex-start;
+    }
+    .warning-band .icon {
+      font-family: var(--font-mono);
+      color: var(--color-primary);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+    .warning-band p { margin: 0; font-size: 14px; color: var(--color-body); }
+    .warning-band p + p { margin-top: var(--space-xs); }
+    .warning-band code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--color-surface-card);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      color: var(--color-primary);
+    }
+
+    footer { padding: var(--space-xxl) 0; color: var(--color-muted); font-size: 14px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--space-md); }
+    footer .wordmark { font-size: 16px; font-weight: 700; color: var(--color-on-dark); letter-spacing: -0.3px; margin-bottom: 8px; }
+    footer .wordmark span { color: var(--color-primary); }
+
+    pre.snippet { margin: 0; font-family: var(--font-mono); font-size: 13px; line-height: 1.55; color: var(--color-body-strong); white-space: pre; }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr; gap: var(--space-lg); }
+      .fixtures-grid { grid-template-columns: 1fr; }
+      .support-grid { grid-template-columns: 1fr; }
+      .cta-band { flex-direction: column; align-items: flex-start; padding: 40px; }
+      section { padding: var(--space-xxl) 0; }
+    }
   </style>
 </head>
 <body>
-  <h1><span>Yantra.</span></h1>
-  <p class="lede">Drop an STL. Set the hot side. Set the cold side. Watch heat conduct through the part — on your GPU, in your tab. No install. No cloud.</p>
-  <a class="cta" href="/sim">Open simulator →</a>
-  <div class="fixtures">
-    <p>Or try a built-in fixture:</p>
-    <a href="/sim?fx=cube">Cube (smoke test)</a>
-    <a href="/sim?fx=sphere">Sphere</a>
-    <a href="/sim?fx=fins">Finned heatsink</a>
-  </div>
-  <footer>Requires a WebGPU-capable browser (Chrome / Edge / Arc on 2026). Built with Astro · React · WebGPU · WGSL.</footer>
+  <header class="top-nav">
+    <a href="/" class="wordmark">Yantra<span>.</span></a>
+    <nav>
+      <a href="https://github.com/svssdeva" target="_blank" rel="noopener">GitHub</a>
+      <a href="/sim" class="btn-primary">Open simulator →</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <span class="eyebrow badge-pill mono">webgpu · steady-state · v0.1</span>
+        <h1 class="display-xl">Heat conduction in a browser tab.</h1>
+        <p class="lede">
+          Drop an STL. Pick a material. Set the hot face and the cold face. Watch heat
+          conduct through the part — on your GPU, in your tab. No install. No cloud.
+        </p>
+        <div class="cta-row">
+          <a href="/sim" class="btn-primary">Open simulator →</a>
+          <a href="https://github.com/svssdeva" target="_blank" rel="noopener" class="btn-secondary">View source</a>
+        </div>
+      </div>
+      <div class="code-window">
+        <div class="chrome"><i></i><i></i><i></i><span>jacobi.wgsl</span></div>
+<pre class="snippet"><span class="cm">// 7-point stencil, harmonic-mean k at each face</span>
+<span class="kw">@compute</span> <span class="kw">@workgroup_size</span>(<span class="num">8</span>, <span class="num">8</span>, <span class="num">4</span>)
+<span class="kw">fn</span> <span class="id">main</span>(<span class="kw">@builtin</span>(global_invocation_id) gid: <span class="id">vec3</span>&lt;<span class="kw">u32</span>&gt;) &lbrace;
+  <span class="kw">let</span> v   = <span class="id">idxOf</span>(gid.x, gid.y, gid.z);
+  <span class="kw">let</span> kv  = kCond[v];
+  <span class="kw">var</span> num: <span class="kw">f32</span> = Q[v] * h2;
+  <span class="kw">var</span> den: <span class="kw">f32</span> = <span class="num">0.0</span>;
+  <span class="cm">// ... accumulate the six neighbours ...</span>
+  T_out[v] = num / den;
+&rbrace;</pre>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div>
+        <div class="stat-display">1 file</div>
+        <div class="stat-label">STL drops in. Voxelizes in a worker. UI stays live.</div>
+      </div>
+      <div>
+        <div class="stat-display">0 servers</div>
+        <div class="stat-label">Everything runs in your tab. WebGPU + WGSL on your own GPU.</div>
+      </div>
+      <div>
+        <div class="stat-display">1e-4</div>
+        <div class="stat-label">Relative residual at convergence. Same numerics as the CPU reference.</div>
+      </div>
+    </section>
+
+    <section>
+      <span class="caption-uppercase">Fixtures</span>
+      <h2 class="display-md" style="margin: var(--space-sm) 0 var(--space-xl); max-width: 18ch;">
+        Try one of the built-in geometries.
+      </h2>
+      <div class="fixtures-grid">
+        <a href="/sim?fx=cube" class="fixture-card">
+          <div class="caption-uppercase">Smoke test</div>
+          <h3>Cube</h3>
+          <p>Pin opposite faces to 100 °C and 0 °C. Interior settles to a linear gradient.</p>
+          <div class="arrow">Open →</div>
+        </a>
+        <a href="/sim?fx=sphere" class="fixture-card">
+          <div class="caption-uppercase">Symmetric</div>
+          <h3>Sphere</h3>
+          <p>Radial conduction. Eyeball isothermal shells in the colormap.</p>
+          <div class="arrow">Open →</div>
+        </a>
+        <a href="/sim?fx=fins" class="fixture-card yellow">
+          <div class="caption-uppercase">Featured</div>
+          <h3>Finned heatsink</h3>
+          <p>The geometry the solver was built for. Watch the gradient cascade down each fin.</p>
+          <div class="arrow">Open →</div>
+        </a>
+        <a href="/sim?fx=cylinder" class="fixture-card">
+          <div class="caption-uppercase">Rod</div>
+          <h3>Cylinder</h3>
+          <p>Heat one end-cap, cool the other — the textbook 1-D rod problem in 3-D.</p>
+          <div class="arrow">Open →</div>
+        </a>
+        <a href="/sim?fx=lbracket" class="fixture-card">
+          <div class="caption-uppercase">Bend</div>
+          <h3>L-bracket</h3>
+          <p>Gradient turns a 90° elbow. The bend adds thermal resistance — you can see it.</p>
+          <div class="arrow">Open →</div>
+        </a>
+        <a href="/sim?fx=pipe" class="fixture-card">
+          <div class="caption-uppercase">Hollow</div>
+          <h3>Pipe</h3>
+          <p>Concentric-cylinder problem. Heat flows through the wall, never through the bore.</p>
+          <div class="arrow">Open →</div>
+        </a>
+        <a href="/sim?fx=pyramid" class="fixture-card">
+          <div class="caption-uppercase">Tapered</div>
+          <h3>Pyramid</h3>
+          <p>Cross-section shrinks toward the apex; the gradient steepens to compensate.</p>
+          <div class="arrow">Open →</div>
+        </a>
+      </div>
+    </section>
+
+    <section>
+      <span class="caption-uppercase">Compatibility</span>
+      <h2 class="display-md" style="margin: var(--space-sm) 0 var(--space-md); max-width: 22ch;">
+        Will it run on your machine?
+      </h2>
+      <p style="color: var(--color-body); max-width: 60ch; margin: 0 0 var(--space-md);">
+        Yantra is <strong style="color: var(--color-on-dark);">WebGPU only</strong>. There is
+        no WebGL2 fallback — WebGL2 has no compute shaders, and the entire solver is a compute
+        shader. If your browser can't run WebGPU, the simulator gate will tell you up front
+        rather than failing later.
+      </p>
+
+      <div class="support-grid">
+        <div class="support-card">
+          <h3><span class="dot ok"></span>Browsers</h3>
+          <ul class="support-list">
+            <li><span class="row-label">Chrome · Edge · Arc · Brave · Opera</span><span class="row-value ok">113+</span></li>
+            <li><span class="row-label">Chrome for Android</span><span class="row-value ok">148+</span></li>
+            <li><span class="row-label">Safari (macOS · iOS)</span><span class="row-value partial">26+ partial</span></li>
+            <li><span class="row-label">Firefox</span><span class="row-value no">Nightly · flag</span></li>
+            <li><span class="row-label">Samsung Internet</span><span class="row-value ok">24+</span></li>
+          </ul>
+        </div>
+
+        <div class="support-card">
+          <h3><span class="dot ok"></span>GPUs</h3>
+          <ul class="support-list">
+            <li><span class="row-label">Discrete (RTX · Radeon RX · Arc)</span><span class="row-value ok">Recommended</span></li>
+            <li><span class="row-label">Apple Silicon (M1 / M2 / M3 / M4)</span><span class="row-value ok">Excellent</span></li>
+            <li><span class="row-label">Intel Iris Xe · AMD 780M</span><span class="row-value ok">Works</span></li>
+            <li><span class="row-label">Mobile (Mali · Adreno · A-series)</span><span class="row-value partial">Res ≤ 48</span></li>
+            <li><span class="row-label">VMs / Remote desktop</span><span class="row-value no">No</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="warning-band">
+        <div class="icon">!</div>
+        <div>
+          <p>
+            <strong style="color: var(--color-on-dark);">Driver notes.</strong> If the page
+            hangs, the colormap freezes mid-solve, or Chrome reports a
+            <code>device lost</code> error, the GPU driver hit a fault — not Yantra. Most
+            common cases:
+          </p>
+          <p>
+            <strong style="color: var(--color-on-dark);">NVIDIA Blackwell (RTX 50-series) on Linux:</strong>
+            early-2026 driver branches (575–580) sporadically GSP-fault under sustained
+            compute. Update to the latest NVIDIA-OPEN or proprietary driver.
+            <strong style="color: var(--color-on-dark);">Windows TDR:</strong> if a single
+            Solve takes longer than 2 s, Windows resets the GPU. Lower resolution to 32 or 48.
+            <strong style="color: var(--color-on-dark);">Mesa:</strong> works from Mesa 24+;
+            older Mesa needs <code>--enable-features=Vulkan</code> on Chrome launch.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="cta-band">
+        <h2>Drop a part. Watch it heat up.</h2>
+        <a href="/sim" class="btn-on-yellow">Open simulator →</a>
+      </div>
+    </section>
+
+    <footer>
+      <div>
+        <div class="wordmark">Yantra<span>.</span></div>
+        <div>Astro · Preact · Three.js · WebGPU · WGSL · Bun</div>
+      </div>
+      <div>
+        Requires a WebGPU-capable browser (Chrome / Edge / Arc on 2026).
+      </div>
+    </footer>
+  </main>
 </body>
 </html>
