@@ -1,63 +1,140 @@
-# Wiring Trishul into Claude clients
+# Install & Integration Guide
 
-Trishul speaks **MCP over stdio**. Every Claude client that supports MCP servers can use it: Claude Desktop, Claude Code (CLI), the Claude Agent SDK, and IDE integrations that follow the same config shape (Cursor, Continue, Zed).
+Trishul ships as a single binary that any MCP-aware Claude client launches over **stdio**. There is no daemon, no service, no port. The client spawns `trishul-mcp` for the duration of the chat session and tears it down when the session ends.
 
-## 1. Install the binary
+This guide covers:
+
+1. [Install on Linux](#1-linux)
+2. [Install on macOS](#2-macos)
+3. [Install on Windows](#3-windows)
+4. [Wire into Claude Desktop](#4-claude-desktop)
+5. [Wire into Claude Code (CLI)](#5-claude-code-cli)
+6. [Wire into Cursor / Continue / Zed](#6-cursor--continue--zed)
+7. [Use from the Anthropic Agent SDK](#7-anthropic-agent-sdk)
+8. [Verify it works](#8-verify-it-works)
+9. [Troubleshooting](#9-troubleshooting)
+10. [Uninstall](#10-uninstall)
+
+The privilege model for `syscall_trace` is documented separately in [`PRIVILEGES.md`](PRIVILEGES.md). Tool semantics are in [`TOOLS.md`](TOOLS.md). Sample Claude conversations are in [`EXAMPLES.md`](EXAMPLES.md).
+
+---
+
+## 1. Linux
 
 ```bash
-git clone <your-fork>/trishul
-cd trishul
+# 1. Rust toolchain (stable + nightly + the BPF linker)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup toolchain install nightly --component rust-src
+cargo install bpf-linker
+
+# 2. Build + install Trishul
+git clone <your-fork>/trishul.git && cd trishul
 cargo install --path crates/trishul-mcp
 # → ~/.cargo/bin/trishul-mcp
 ```
 
-Confirm with:
+Confirm:
+
 ```bash
 trishul-mcp selftest
+# expect one "ok" line per tool; syscall_trace will report a setcap hint
+# unless you've granted CAP_BPF — see step 3 below
 ```
 
-You should see one `ok` line per tool. If anything says `FAIL`, fix the cause before wiring it up — Claude will get the same errors.
+### Optional: grant `syscall_trace` privileges once
 
-> **Build hack (developer machines on noexec filesystems):** if cargo complains about "permission denied" on build scripts, your project tree is mounted `noexec`. Either move the project to a normal partition, or build with `CARGO_TARGET_DIR=/tmp/trishul-target` and reference that binary path in the configs below.
-
-## 2. Claude Desktop
-
-Edit `~/.config/Claude/claude_desktop_config.json` (Linux) or `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS). Add the `trishul` server:
-
-```json
-{
-  "mcpServers": {
-    "trishul": {
-      "command": "trishul-mcp",
-      "args": []
-    }
-  }
-}
+```bash
+sudo setcap cap_bpf,cap_perfmon=eip "$(which trishul-mcp)"
 ```
 
-If `trishul-mcp` is not on the PATH of the Claude Desktop app (it usually isn't, since GUI apps don't source `~/.bashrc`), use the absolute path:
+The capability is sticky on the binary. After that, `syscall_trace` works from any client, no sudo at runtime. See [`PRIVILEGES.md`](PRIVILEGES.md) for the full story.
 
-```json
-{
-  "mcpServers": {
-    "trishul": {
-      "command": "/home/YOURUSER/.cargo/bin/trishul-mcp"
-    }
-  }
-}
+### Kernel requirements
+
+- **Linux ≥ 5.8** (BTF + BPF ring buffer required for the tracepoint).
+- `/sys/kernel/btf/vmlinux` must exist (most modern distros have it on by default).
+
+---
+
+## 2. macOS
+
+Trishul builds on macOS with the standard Rust toolchain:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+xcode-select --install   # provides libproc.h headers
+git clone <your-fork>/trishul.git && cd trishul
+cargo install --path crates/trishul-mcp
+# → ~/.cargo/bin/trishul-mcp
 ```
 
-Restart Claude Desktop. In the chat composer you should see Trishul's tools available via the 🔌 picker. Ask:
+### `syscall_trace` on macOS
 
-> What's listening on port 5432?
+Backend is shell-out to `/usr/sbin/dtrace`. Two privilege scenarios:
 
-Claude will call `network_listeners` and answer.
+| Goal | What to do |
+|---|---|
+| Trace *your own* non-Apple-signed processes | Launch the MCP client (Claude Desktop, etc.) with `sudo`, **or** run `sudo trishul-mcp serve` and point the client at it. |
+| Trace Apple-signed binaries (Safari, Mail, system daemons) | Relax SIP via Recovery: `csrutil enable --without dtrace`. **Security regression — only on a dev box.** Restore with `csrutil enable` once finished. |
 
-## 3. Claude Code (CLI)
+Trishul detects both failure modes and returns a clear `RequiresCapability` error pointing back here.
 
-Add to `~/.claude/config.json` (or the project-local `.claude/config.json`):
+### Tested on
 
-```json
+- macOS 14 Sonoma, macOS 15 Sequoia, macOS 26 (latest stable).
+- Apple Silicon (M1/M2/M3/M4) and Intel.
+
+---
+
+## 3. Windows
+
+```powershell
+# 1. Rust toolchain
+winget install --id Rustlang.Rustup -e
+rustup toolchain install stable
+
+# 2. Build + install Trishul
+git clone <your-fork>/trishul.git
+cd trishul
+cargo install --path crates/trishul-mcp
+# → %USERPROFILE%\.cargo\bin\trishul-mcp.exe
+```
+
+> The `trishul-ebpf` sub-crate **only builds on Linux** (it's the kernel BPF object). On Windows the `build.rs` skips it and writes an empty stub. This is expected — `syscall_trace` on Windows uses ETW, not eBPF.
+
+### `syscall_trace` on Windows
+
+Backend is `ferrisetw` (pure-Rust ETW consumer) attached to the **NT Kernel Logger** with the `SystemCall` flag.
+
+Requires **Administrator** (`SeSystemProfilePrivilege`). Two paths:
+
+| Goal | What to do |
+|---|---|
+| Run trace just for this session | Right-click Claude Desktop / your terminal → **Run as administrator**. |
+| Persist privilege for the binary | Use [PsExec](https://learn.microsoft.com/sysinternals/downloads/psexec) or Task Scheduler to launch `trishul-mcp.exe` as `NT AUTHORITY\SYSTEM`. |
+
+Without admin, the tool returns `RequiresCapability("SeSystemProfilePrivilege (run as Administrator) on Windows")`.
+
+### Tested on
+
+- Windows 11 (24H2 and 25H2).
+- Windows Server 2022 / 2025.
+
+---
+
+## 4. Claude Desktop
+
+Edit the client's config file:
+
+| OS | Path |
+|---|---|
+| Linux | `~/.config/Claude/claude_desktop_config.json` |
+| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
+
+Add the `trishul` server:
+
+```jsonc
 {
   "mcpServers": {
     "trishul": {
@@ -67,38 +144,125 @@ Add to `~/.claude/config.json` (or the project-local `.claude/config.json`):
 }
 ```
 
-Then in any Claude Code session, the tools appear automatically. No restart needed for project-local configs.
+GUI applications often don't inherit your shell's `PATH`. If you see "command not found", use the absolute path instead:
 
-## 4. Cursor / Continue / Zed
+```jsonc
+{
+  "mcpServers": {
+    "trishul": {
+      // Linux / macOS:
+      "command": "/Users/YOU/.cargo/bin/trishul-mcp"
+      // Windows: "command": "C:\\Users\\YOU\\.cargo\\bin\\trishul-mcp.exe"
+    }
+  }
+}
+```
 
-These tools use the same MCP server shape. The Cursor config lives at `~/.cursor/mcp.json`:
+**Restart Claude Desktop.** You'll see a 🔌 picker offering the `trishul` tools. Ask:
 
-```json
+> "What's listening on port 5432?"
+
+---
+
+## 5. Claude Code (CLI)
+
+Project-local (preferred):
+
+```bash
+mkdir -p .claude
+cat > .claude/config.json <<'EOF'
 {
   "mcpServers": {
     "trishul": { "command": "trishul-mcp" }
   }
 }
+EOF
 ```
 
-## 5. Claude Agent SDK (programmatic use)
+Or globally:
+
+```bash
+mkdir -p ~/.claude
+# same JSON in ~/.claude/config.json
+```
+
+Tools become available the next time you run `claude` in that directory — no daemon to restart.
+
+---
+
+## 6. Cursor / Continue / Zed
+
+These tools share the MCP server shape.
+
+**Cursor** — `~/.cursor/mcp.json`:
+```json
+{ "mcpServers": { "trishul": { "command": "trishul-mcp" } } }
+```
+
+**Continue** — in your Continue config (`~/.continue/config.json`):
+```json
+{
+  "experimental": {
+    "modelContextProtocolServers": [
+      { "transport": { "type": "stdio", "command": "trishul-mcp" } }
+    ]
+  }
+}
+```
+
+**Zed** — `~/.config/zed/settings.json`:
+```json
+{
+  "context_servers": {
+    "trishul": { "command": { "path": "trishul-mcp", "args": [] } }
+  }
+}
+```
+
+---
+
+## 7. Anthropic Agent SDK
 
 ```python
+# Python; the JS/TS SDK is structurally identical.
 from anthropic import Anthropic
-# pseudocode — see the Agent SDK docs for the exact API surface
 
-agent = Anthropic.agent(
-    mcp_servers=[
-        {"name": "trishul", "command": "trishul-mcp"}
-    ]
+client = Anthropic()
+response = client.messages.create(
+    model="claude-opus-4-7",
+    max_tokens=1024,
+    mcp_servers=[{
+        "type": "stdio",
+        "name": "trishul",
+        "command": "trishul-mcp",
+    }],
+    messages=[{"role": "user", "content": "What's eating CPU on my box right now?"}],
 )
+print(response.content)
 ```
 
-The SDK will spawn `trishul-mcp` as a subprocess for the duration of the session.
+The SDK spawns `trishul-mcp` as a subprocess for the lifetime of the request and tears it down afterward.
 
-## 6. Verifying the wire
+---
 
-Trishul has no daemon. Each client launches it as a fresh subprocess, talks to it over stdin/stdout (JSON-RPC framed by Content-Length per MCP), then closes stdin when the session ends. You can reproduce this by hand:
+## 8. Verify it works
+
+The `selftest` subcommand runs every tool once locally — no client needed:
+
+```bash
+trishul-mcp selftest
+# Linux example:
+#   · deva-linux · Ubuntu 24.04 · 16 CPUs (Ryzen 9 9800X3D) · 62.2 GiB RAM · load 0.45
+#   ok    host_info                      125µs
+#   ok    process_tree                   7ms
+#   ok    proc_snapshot                  5ms
+#   ok    process_detail_self            500µs
+#   ok    network_listeners              12ms
+#   ok    usb_devices                    26ms
+#   ok    syscall_trace                  46µs   (or skip + setcap hint)
+```
+
+You can also speak MCP by hand to inspect schemas:
 
 ```bash
 ( echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"0.0.0"}}}'
@@ -107,40 +271,49 @@ Trishul has no daemon. Each client launches it as a fresh subprocess, talks to i
 ) | trishul-mcp serve
 ```
 
-You should see three JSON responses — server identity, the tool catalog, and the empty notification has no reply.
+You should see three JSON responses on stdout: the server identity, the full tool catalog with input schemas, and an empty acknowledgement for the notification.
 
-## 7. Permissions
+---
 
-Most tools work as your normal user — no `sudo`, no `setcap`. They read from `/proc`, `/sys`, and `/etc`. Partial-data cases:
+## 9. Troubleshooting
 
-- `process_detail.env` — kernel hides other users' environments. Trishul returns `null` and emits a warning rather than failing.
-- `network_listeners` → PID resolution requires reading other users' `/proc/<pid>/fd/`; cross-user PIDs may show as `null`.
+### "trishul-mcp not found" in Claude Desktop
 
-**`syscall_trace` is special.** It loads an eBPF tracepoint and needs `CAP_BPF` + `CAP_PERFMON`. Trishul precheck-detects this and returns a structured `RequiresCapability` error pointing the user to:
+GUI apps don't source your shell rc. Use the absolute path: `which trishul-mcp` → paste that into the config.
 
-```bash
-sudo setcap cap_bpf,cap_perfmon=eip $(which trishul-mcp)
-```
+### `syscall_trace` returns `RequiresCapability`
 
-After that, `syscall_trace` works with no `sudo` at runtime — the file capability is sticky.
+This is intentional — Trishul refuses to silently fail. See [`PRIVILEGES.md`](PRIVILEGES.md) for the exact `setcap` / `sudo` / Run-as-Administrator command per OS.
 
-## 7b. Platform
+### "No GPU adapter" / WebGPU errors
 
-Trishul builds and runs on Linux, macOS, and Windows. Five of the seven tools (`host_info`, `process_tree`, `proc_snapshot`, `process_detail`, `network_listeners`) are fully cross-platform via the `sysinfo` and `netstat2` crates.
+You're in the wrong project. That's Yantra, the WebGPU sim. Trishul has no GPU dependency.
 
-The two Linux-only tools are:
+### Empty output / no listeners visible
 
-- **`usb_devices`** — Linux reads `/sys/bus/usb`. The crossplat libusb backend is tracked but not shipped.
-- **`syscall_trace`** — eBPF doesn't exist outside Linux. Equivalents (DTrace on macOS, ETW on Windows) are deferred.
+`network_listeners` can only attribute PIDs you have read permission on. Run the client as your own user; cross-user PIDs appear with `pid: null, comm: null`.
 
-When invoked on macOS or Windows, those two tools return a structured MCP error so the LLM can react cleanly.
+### Slow tool responses
 
-## 8. Stopping & uninstalling
+The first call after install runs `cargo build` artefacts cold. Subsequent calls are <100 ms on every tool except `syscall_trace`, which is bounded by `duration_ms` (default 1 s, clamped to 30 s).
 
-There's nothing to stop — the binary lives only for the lifetime of the client session. To uninstall:
+### Build hack: `permission denied` on Linux build scripts
+
+If your project tree is on a `noexec` filesystem (common with FUSE-mounted external drives), cargo can't execute build scripts. Either move the project off the mount, or build with `CARGO_TARGET_DIR=/tmp/trishul-target` to put compile artefacts on `/tmp`.
+
+### My MCP client doesn't show Trishul's tools
+
+1. Confirm `trishul-mcp selftest` works.
+2. Confirm the JSON config validates (`jq . path/to/config.json`).
+3. Inspect the client's MCP logs — Claude Desktop has a "View Logs" menu item.
+4. Run the by-hand wire test from §8 to confirm the binary speaks valid JSON-RPC.
+
+---
+
+## 10. Uninstall
 
 ```bash
 cargo uninstall trishul-mcp
 ```
 
-Remove the `trishul` entry from your client's MCP config.
+Remove the `trishul` entry from your client's MCP config. There is nothing else — no daemon, no service, no autostart entry.

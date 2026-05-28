@@ -27,13 +27,27 @@ Once wired in, these prompts all just work:
 
 ## Quick start
 
+## Documentation
+
+| Document | What's in it |
+|---|---|
+| [`docs/CLAUDE_CONFIG.md`](docs/CLAUDE_CONFIG.md) | Per-OS install, client wiring (Claude Desktop / Code / Cursor / Continue / Zed / Agent SDK), troubleshooting, uninstall |
+| [`docs/TOOLS.md`](docs/TOOLS.md) | Full catalog of all 7 tools with args, sample outputs, and sample Claude prompts that trigger each |
+| [`docs/PRIVILEGES.md`](docs/PRIVILEGES.md) | The privilege model per OS — `CAP_BPF`, `sudo`+SIP, `SeSystemProfilePrivilege` — with exact remediation commands |
+| [`docs/EXAMPLES.md`](docs/EXAMPLES.md) | Gallery of real Claude conversations driving the tools |
+
+## Quickstart (the fast lane)
+
 ```bash
-git clone <your-fork>/trishul && cd trishul
+# Linux extras: rustup toolchain install nightly --component rust-src && cargo install bpf-linker
+# macOS extras: xcode-select --install
+# Windows: works out of the box with stable Rust
+git clone <your-fork>/trishul.git && cd trishul
 cargo install --path crates/trishul-mcp
-trishul-mcp selftest    # sanity-check: every tool should print `ok`
+trishul-mcp selftest    # every tool should print "ok"
 ```
 
-Then add to `~/.config/Claude/claude_desktop_config.json` (or any other MCP-aware client):
+Then add to your MCP client config:
 
 ```json
 {
@@ -43,7 +57,7 @@ Then add to `~/.config/Claude/claude_desktop_config.json` (or any other MCP-awar
 }
 ```
 
-Full wiring guides (Claude Desktop, Claude Code, Cursor, Continue, Zed, Agent SDK) in [`docs/CLAUDE_CONFIG.md`](docs/CLAUDE_CONFIG.md).
+Restart the client. Ask: *"What's listening on port 5432?"* Full wiring per client + per-OS in [`docs/CLAUDE_CONFIG.md`](docs/CLAUDE_CONFIG.md).
 
 ## Tools
 
@@ -63,36 +77,26 @@ Every tool accepts an optional `summary_only: true` argument that drops the `dat
 
 Full catalog with args + sample output: [`docs/TOOLS.md`](docs/TOOLS.md).
 
-### Granting CAP_BPF (one-time)
+### `syscall_trace` privileges in one line
 
-`syscall_trace` is the only tool that needs more than userspace permissions. Either:
+| OS | One-time setup |
+|---|---|
+| Linux | `sudo setcap cap_bpf,cap_perfmon=eip $(which trishul-mcp)` |
+| macOS | Run the MCP client as `sudo` (full SIP info in [`PRIVILEGES.md`](docs/PRIVILEGES.md)) |
+| Windows | Right-click your MCP client → **Run as administrator** |
 
-```bash
-# preferred: file capability, no sudo at runtime
-sudo setcap cap_bpf,cap_perfmon=eip $(which trishul-mcp)
-```
-
-…or run the MCP client itself with `sudo`. Without these capabilities, the tool returns a structured `RequiresCapability` error with the same hint.
+Without privileges, the tool returns a structured `RequiresCapability` error with the exact remediation. No mysterious `errno -1`s.
 
 ## Architecture
 
-- **Single Rust binary**, spawned per session by your MCP client. No daemon, no service to manage.
-- **Cargo workspace** with one bin + one collector module per tool. Each collector is a pure function returning a uniform `{ summary, data, warnings, truncated }` envelope — token-efficient for the LLM, drillable when needed.
-- **Built on `rmcp 1.7`** (Anthropic's Rust MCP SDK) + `tokio` + `procfs` + `nix`. Linux-only MVP.
-- **No panics, ever.** Permission gaps and missing optional tools surface as `warnings`, never as fatal errors.
-
-## Architecture (eBPF deep dive)
-
-`syscall_trace` is a real eBPF program — not a `strace` shell-out or polling hack.
-
-- **`crates/trishul-ebpf/`** — `no_std` crate that compiles to `bpfel-unknown-none`. Implements a `raw_syscalls/sys_enter` tracepoint that increments a per-PID-per-syscall counter in a kernel `HashMap`. Built with `aya-ebpf` + the nightly Rust BPF target via `bpf-linker`.
-- **`build.rs`** uses `aya_build::build_ebpf` to compile the BPF crate at build time and embed the verified ELF into the userspace binary via `include_bytes!`.
-- **`collectors/ebpf.rs`** loads the program via `aya::Ebpf::load`, attaches the tracepoint, sleeps for the configured window, then iterates the kernel `HashMap` and returns the top-N syscalls per PID with stable x86_64 syscall-name resolution.
-- A capability **precheck** runs before any BPF call — it reads `CapEff:` from `/proc/self/status` and short-circuits with a clear `setcap` hint if `CAP_BPF` or `CAP_PERFMON` is missing. No cryptic `errno -1`s reach the client.
+- **Single Rust binary** spawned per session by your MCP client. No daemon, no service to manage. Stdio JSON-RPC; stderr-only logging keeps the protocol channel clean.
+- **Cargo workspace** with one bin (`trishul-mcp`) and one BPF sub-crate (`trishul-ebpf`, Linux only). Each collector is a pure function returning a uniform `{ summary, data, warnings, truncated }` envelope — token-efficient for the LLM, drillable when needed.
+- **Built on `rmcp 1.7`** (Anthropic's Rust MCP SDK) + `tokio`. Cross-platform observability via pure-Rust crates: `sysinfo` (host + processes), `netstat2` (sockets), `nusb` (USB), `aya` (Linux eBPF), `ferrisetw` (Windows ETW). The only deliberate shell-out is `/usr/sbin/dtrace` on macOS.
+- **No panics, ever.** Permission gaps and missing optional sources surface as `warnings`; tool inputs are clamped server-side; outputs are byte-budgeted with truncation markers.
 
 ## Status
 
-Seven tools shipped, 6 of 7 cross-platform (Linux/macOS/Windows), real eBPF on Linux. Token-budgeted and clippy-clean.
+All 7 tools shipped, all 7 cross-platform (Linux · macOS · Windows). `syscall_trace` uses real eBPF on Linux, real DTrace on macOS, real ETW on Windows. Token-budgeted, clippy-clean, no `unwrap()` outside tests.
 
 Future:
 
