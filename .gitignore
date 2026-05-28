@@ -1,0 +1,78 @@
+# Workspace-level ignores for yolo. Each subproject (yantra/, trishul/)
+# also has its own .gitignore for stack-specific build artifacts.
+
+# Rust build output (subprojects symlink target/ to /tmp for noexec mounts;
+# either way, never commit it).
+**/target/
+**/Cargo.lock.bak
+
+# JS / TS build artifacts.
+**/node_modules/
+**/dist/
+**/.astro/
+**/.next/
+**/.turbo/
+**/.vite/
+**/.cache/
+**/.output/
+**/.svelte-kit/
+**/build/
+
+# Bun lockfile is stack-specific — keep it scoped to subprojects; ignore
+# accidental drops at the root.
+/bun.lockb
+/bun.lock
+
+# Logs.
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+bun-debug.log*
+
+# Env + local secrets.
+.env
+.env.*
+!.env.example
+*.local
+
+# Editor / IDE.
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# OS noise.
+.DS_Store
+Thumbs.db
+desktop.ini
+Icon?
+
+# Claude Code per-machine state and other agent runtimes.
+.claude/
+.cursor/
+.aider*
+.continue/
+.zed/
+
+# Coverage + profile data.
+*.profraw
+*.profdata
+coverage/
+lcov.info
+
+# Tarballs and packed artifacts.
+*.tgz
+*.tar
+*.tar.gz
+*.zip
+
+# Junk that's shown up here historically.
+TXT.txt
+*.tmp
