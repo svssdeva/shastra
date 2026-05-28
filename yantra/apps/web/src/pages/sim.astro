@@ -1,0 +1,22 @@
+---
+import YantraApp from '../components/yantra/YantraApp';
+---
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Yantra · sim</title>
+  <meta name="viewport" content="width=device-width" />
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; background: #0b0b10; color: #e7e7ea; font: 14px/1.5 system-ui, sans-serif; }
+    button { background: #fce459; color: #0b0b10; border: 0; padding: 0.5rem 1rem; border-radius: 0.3rem; font-weight: 600; cursor: pointer; }
+    button:disabled { opacity: 0.5; cursor: default; }
+    button:not(:disabled):hover { background: #fff36b; }
+    select, input { background: #15151c; color: #e7e7ea; border: 1px solid #2c2c38; padding: 0.3rem 0.5rem; border-radius: 0.25rem; margin-top: 0.2rem; width: 100%; box-sizing: border-box; }
+    label { display: block; font-size: 0.85em; color: #9aa; }
+  </style>
+</head>
+<body>
+  <YantraApp client:only="react" />
+</body>
+</html>

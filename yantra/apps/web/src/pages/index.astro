@@ -1,0 +1,37 @@
+---
+const title = 'Yantra · WebGPU heat simulation in your browser';
+---
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{title}</title>
+  <meta name="viewport" content="width=device-width" />
+  <meta property="og:title" content="Yantra" />
+  <meta property="og:description" content="WebGPU finite-element heat simulation, in a browser tab." />
+  <style>
+    :root { color-scheme: dark; }
+    body { font: 16px/1.6 system-ui, sans-serif; max-width: 720px; margin: 0 auto; padding: 4rem 1.5rem; background: #0b0b10; color: #e7e7ea; }
+    h1 { font-size: 3.5rem; margin: 0 0 0.5rem; letter-spacing: -0.03em; }
+    h1 span { background: linear-gradient(120deg, #ff7a59, #fce459); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    p.lede { font-size: 1.2rem; color: #b9b9c2; margin: 0 0 2rem; }
+    a.cta { display: inline-block; padding: 0.85rem 1.4rem; background: #fce459; color: #0b0b10; text-decoration: none; border-radius: 0.4rem; font-weight: 700; }
+    .fixtures { margin-top: 3rem; }
+    .fixtures a { display: block; padding: 1rem; margin: 0.5rem 0; background: #15151c; border-radius: 0.4rem; color: #e7e7ea; text-decoration: none; border: 1px solid #21212a; }
+    .fixtures a:hover { background: #1c1c26; border-color: #2c2c38; }
+    footer { margin-top: 4rem; color: #6a6a78; font-size: 0.85em; }
+    code { background: #15151c; padding: 0.1em 0.35em; border-radius: 0.2rem; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1><span>Yantra.</span></h1>
+  <p class="lede">Drop an STL. Set the hot side. Set the cold side. Watch heat conduct through the part — on your GPU, in your tab. No install. No cloud.</p>
+  <a class="cta" href="/sim">Open simulator →</a>
+  <div class="fixtures">
+    <p>Or try a built-in fixture:</p>
+    <a href="/sim?fx=cube">Cube (smoke test)</a>
+    <a href="/sim?fx=sphere">Sphere</a>
+    <a href="/sim?fx=fins">Finned heatsink</a>
+  </div>
+  <footer>Requires a WebGPU-capable browser (Chrome / Edge / Arc on 2026). Built with Astro · React · WebGPU · WGSL.</footer>
+</body>
+</html>
