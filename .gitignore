@@ -76,3 +76,9 @@ lcov.info
 # Junk that's shown up here historically.
 TXT.txt
 *.tmp
+/stl
+
+# Agent workflow artifacts — engineering persona + Claude-authored spec/plan docs.
+# Kept on disk for local agent use; not part of the codebase.
+CLAUDE.md
+docs/superpowers/

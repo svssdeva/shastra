@@ -1,9 +1,9 @@
-# yolo
+# shastra
 
 > Portfolio workspace. Two production-grade tools that put Claude in physical contact with real systems — one in your browser tab, one inside your kernel.
 
 ```
-yolo/
+shastra/
 ├─ yantra/          WebGPU heat-conduction simulator. Drop an STL, watch heat spread.
 ├─ trishul/         Rust MCP server. Live process / network / USB / syscall view for Claude.
 └─ agentic-skills/  Curated Claude Code skill library (submodule).
@@ -82,7 +82,7 @@ Build-environment caveat for this checkout: `/mnt/shared` is mounted `noexec`, s
 ## Repo layout
 
 ```
-yolo/
+shastra/
 ├─ README.md             — this file
 ├─ .gitignore            — workspace-level
 ├─ .gitmodules           — agentic-skills pin
@@ -102,6 +102,6 @@ MIT, applies to every subproject in this workspace.
 
 ---
 
-## Why "yolo"
+## Why "shastra"
 
-Workspace name. The projects inside are named in Sanskrit (yantra = instrument, trishul = trident) — that's the brand pattern across the author's portfolio. The umbrella directory is named yolo because it's where things land first.
+**Shastra** (शस्त्र / शास्त्र) in Sanskrit covers both *instrument / weapon* and *treatise / discipline / body of knowledge*. The first sense reads the workspace as a collection of tools (Yantra = instrument, Trishul = trident — both literal shastras). The second covers anything that's a *system of practice* (a `naadi-shastra` is the discipline of pulse diagnosis; the `darshana-shastras` are the six classical schools of Indian philosophy). Future Sanskrit-named additions fit naturally either way.
