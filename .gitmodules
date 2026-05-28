@@ -1,0 +1,3 @@
+[submodule "agentic-skills"]
+	path = agentic-skills
+	url = git@github.com:svssdeva/agentic-skills.git
