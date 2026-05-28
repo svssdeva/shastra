@@ -1,13 +1,4 @@
-//! Phase-5 eBPF syscall trace.
-//!
-//! Loads a `raw_syscalls/sys_enter` tracepoint that counts every syscall entry,
-//! keyed by `(tgid, syscall_id)` in a kernel HashMap. Userspace samples the map
-//! after a configurable duration and returns the top syscalls per PID.
-//!
-//! Requires `CAP_BPF` and `CAP_PERFMON` (or root). If not present, returns a
-//! structured `RequiresCapability` error pointing the user to `setcap`.
-
-#![cfg(target_os = "linux")]
+//! Linux backend: aya/eBPF `raw_syscalls/sys_enter` tracepoint.
 
 use std::collections::HashMap as StdMap;
 use std::time::Duration;
@@ -16,50 +7,25 @@ use aya::Ebpf;
 use aya::maps::HashMap as BpfHashMap;
 use aya::programs::TracePoint;
 use nix::libc;
-use serde::Serialize;
-use serde_json::json;
 
-use crate::types::{CollectorOutput, TrishulError};
+use super::{PidSummary, SyscallCount};
+use crate::types::TrishulError;
 
 const TRISHUL_BPF: &[u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/trishul-syscall-trace"));
 
-#[derive(Debug, Serialize)]
-struct PidSummary {
-    pid: u32,
-    comm: Option<String>,
-    total: u64,
-    top: Vec<SyscallCount>,
-}
-
-#[derive(Debug, Serialize)]
-struct SyscallCount {
-    nr: u32,
-    name: &'static str,
-    count: u64,
-}
-
-/// Run a syscall trace for `duration` and return per-PID top-N syscalls.
-///
-/// `top_per_pid` = how many distinct syscalls to report per PID (sorted by count desc).
-pub async fn collect_syscall_trace(
+pub async fn collect(
     duration: Duration,
-    top_per_pid: usize,
     pid_filter: Option<u32>,
-) -> Result<CollectorOutput, TrishulError> {
-    // Precheck: BPF needs root or CAP_BPF + CAP_PERFMON. Bail with a clear error if missing,
-    // so the user sees a `setcap` hint instead of a cryptic map/program error.
+) -> Result<Vec<PidSummary>, TrishulError> {
     if !has_bpf_caps() {
         return Err(TrishulError::RequiresCapability("cap_bpf,cap_perfmon"));
     }
 
-    // Load the BPF program embedded at build time.
     let mut bpf = Ebpf::load(TRISHUL_BPF).map_err(|e| map_load_err(&e))?;
-
-    // Attach the tracepoint. This is where CAP_BPF is enforced.
     let program: &mut TracePoint = bpf
         .program_mut("trishul_sys_enter")
-        .ok_or_else(|| TrishulError::Procfs("trishul_sys_enter program not found in BPF object".into()))?
+        .ok_or_else(|| TrishulError::Procfs("trishul_sys_enter program not found".into()))?
         .try_into()
         .map_err(|e: aya::programs::ProgramError| {
             TrishulError::Procfs(format!("program type mismatch: {e}"))
@@ -69,17 +35,15 @@ pub async fn collect_syscall_trace(
         .attach("raw_syscalls", "sys_enter")
         .map_err(|e| map_program_err(&e))?;
 
-    // Sample for the requested duration.
     tokio::time::sleep(duration).await;
 
-    // Read the kernel HashMap.
     let counts: BpfHashMap<_, u64, u64> = BpfHashMap::try_from(
         bpf.map("SYSCALL_COUNTS")
             .ok_or_else(|| TrishulError::Procfs("SYSCALL_COUNTS map not found".into()))?,
     )
     .map_err(|e| TrishulError::Procfs(format!("open BPF map: {e}")))?;
 
-    let mut by_pid: StdMap<u32, Vec<SyscallCount>> = StdMap::new();
+    let mut by_pid: StdMap<u32, PidSummary> = StdMap::new();
     for entry in counts.iter() {
         let (key, count) = entry.map_err(|e| TrishulError::Procfs(format!("map iter: {e}")))?;
         let pid = (key >> 32) as u32;
@@ -89,46 +53,20 @@ pub async fn collect_syscall_trace(
         {
             continue;
         }
-        by_pid.entry(pid).or_default().push(SyscallCount {
-            nr,
-            name: syscall_name_x86_64(nr),
+        let entry = by_pid.entry(pid).or_insert_with(|| PidSummary {
+            pid,
+            comm: comm_for_pid(pid),
+            total: 0,
+            top: Vec::new(),
+        });
+        entry.total = entry.total.saturating_add(count);
+        entry.top.push(SyscallCount {
+            nr: nr as u64,
+            name: syscall_name_x86_64(nr).to_string(),
             count,
         });
     }
-
-    // Build summary: top-N per PID, sorted by total desc.
-    let mut summaries: Vec<PidSummary> = by_pid
-        .into_iter()
-        .map(|(pid, mut sys)| {
-            sys.sort_unstable_by_key(|s| std::cmp::Reverse(s.count));
-            let total: u64 = sys.iter().map(|s| s.count).sum();
-            sys.truncate(top_per_pid);
-            PidSummary {
-                pid,
-                comm: comm_for_pid(pid),
-                total,
-                top: sys,
-            }
-        })
-        .collect();
-    summaries.sort_unstable_by_key(|s| std::cmp::Reverse(s.total));
-
-    let pid_count = summaries.len();
-    let total_calls: u64 = summaries.iter().map(|s| s.total).sum();
-
-    let summary = format!(
-        "{} PID(s) traced over {:.1}s — {} total syscalls",
-        pid_count,
-        duration.as_secs_f64(),
-        total_calls,
-    );
-    let data = json!({
-        "duration_secs": duration.as_secs_f64(),
-        "total_calls": total_calls,
-        "pids_traced": pid_count,
-        "by_pid": summaries,
-    });
-    Ok(CollectorOutput::new(summary, data))
+    Ok(by_pid.into_values().collect())
 }
 
 fn map_load_err(e: &aya::EbpfError) -> TrishulError {
@@ -155,14 +93,10 @@ fn comm_for_pid(pid: u32) -> Option<String> {
         .map(|s| s.trim().to_string())
 }
 
-/// True if the process has the rights needed to load BPF programs and attach tracepoints.
-/// Either:
-///   - effective UID is 0 (root), or
-///   - effective capability set includes both `CAP_BPF` (39) and `CAP_PERFMON` (38).
-///
-/// The check reads `/proc/self/status` line `CapEff:`. Kernel constants are stable.
+/// True if euid is root, or if `CAP_BPF` (39) and `CAP_PERFMON` (38) are both
+/// in the effective capability set (read from `/proc/self/status:CapEff`).
 fn has_bpf_caps() -> bool {
-    // SAFETY: getuid/geteuid are safe wrappers; we only call libc directly for clarity.
+    // SAFETY: geteuid is signal-safe and has no preconditions.
     let euid = unsafe { libc::geteuid() };
     if euid == 0 {
         return true;
@@ -182,8 +116,6 @@ fn has_bpf_caps() -> bool {
     false
 }
 
-/// Best-effort syscall name table for x86_64 Linux.
-/// Only the common ones are mapped; unknowns return "syscall_<n>".
 fn syscall_name_x86_64(nr: u32) -> &'static str {
     match nr {
         0 => "read",

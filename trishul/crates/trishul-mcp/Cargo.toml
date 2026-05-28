@@ -25,12 +25,16 @@ sysinfo = { workspace = true }
 netstat2 = { workspace = true }
 nusb = { workspace = true }
 
-# Linux-only specialised paths: procfs reads, USB sysfs, eBPF.
+# Linux-only specialised paths: procfs reads, eBPF.
 [target.'cfg(target_os = "linux")'.dependencies]
 procfs = { workspace = true }
 nix = { workspace = true }
 aya = { workspace = true }
 aya-log = { workspace = true }
+
+# Windows-only: ETW consumer via ferrisetw.
+[target.'cfg(target_os = "windows")'.dependencies]
+ferrisetw = { workspace = true }
 
 [build-dependencies]
 anyhow = { workspace = true }

@@ -59,7 +59,6 @@ fn selftest(only: Option<String>) -> Result<()> {
         ("network_listeners", run_network_listeners),
         #[cfg(target_os = "linux")]
         ("usb_devices", run_usb_devices),
-        #[cfg(target_os = "linux")]
         ("syscall_trace", run_syscall_trace),
     ];
     let mut fails = 0;
@@ -123,11 +122,10 @@ fn run_usb_devices() -> Result<()> {
     Ok(())
 }
 
-#[cfg(target_os = "linux")]
 fn run_syscall_trace() -> Result<()> {
     let out = tokio::task::block_in_place(|| {
         tokio::runtime::Handle::current().block_on(
-            collectors::ebpf::collect_syscall_trace(
+            collectors::syscall_trace::collect_syscall_trace(
                 std::time::Duration::from_millis(500),
                 5,
                 None,

@@ -186,34 +186,22 @@ impl Trishul {
     }
 
     #[tool(
-        description = "eBPF syscall trace: attach a raw_syscalls/sys_enter tracepoint for `duration_ms` and return per-PID top syscalls by count. Requires CAP_BPF and CAP_PERFMON (or root). Linux only — macOS/Windows hosts get a structured unsupported error."
+        description = "Per-PID syscall trace over a window. Linux uses eBPF (raw_syscalls/sys_enter); macOS uses dtrace (sudo + SIP-aware); Windows uses ETW (admin / SeSystemProfilePrivilege). Duration is clamped to [10, 30000] ms; top_per_pid to [1, 50]."
     )]
     async fn syscall_trace(
         &self,
         Parameters(args): Parameters<SyscallTraceArgs>,
     ) -> Result<CallToolResult, McpError> {
-        #[cfg(target_os = "linux")]
-        {
-            // Bound duration to avoid runaway traces blocking the MCP server.
-            let dur_ms = args.duration_ms.clamp(10, 30_000);
-            let top = args.top_per_pid.clamp(1, 50);
-            let out = collectors::ebpf::collect_syscall_trace(
-                std::time::Duration::from_millis(dur_ms),
-                top,
-                args.pid,
-            )
-            .await
-            .map_err(map_err)?;
-            Ok(finalize(out, args.summary_only))
-        }
-        #[cfg(not(target_os = "linux"))]
-        {
-            let _ = args;
-            Err(McpError::internal_error(
-                "syscall_trace is Linux-only (eBPF does not exist on this OS)",
-                None,
-            ))
-        }
+        let dur_ms = args.duration_ms.clamp(10, 30_000);
+        let top = args.top_per_pid.clamp(1, 50);
+        let out = collectors::syscall_trace::collect_syscall_trace(
+            std::time::Duration::from_millis(dur_ms),
+            top,
+            args.pid,
+        )
+        .await
+        .map_err(map_err)?;
+        Ok(finalize(out, args.summary_only))
     }
 }
 

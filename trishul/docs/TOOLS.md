@@ -114,7 +114,13 @@ Ask Claude:
 
 ## `syscall_trace`
 
-**Linux only.** **Requires `CAP_BPF` + `CAP_PERFMON`** (or root).
+Cross-platform (Linux · macOS · Windows) via different kernel primitives.
+
+**Privileges per OS:**
+
+- Linux: `CAP_BPF` + `CAP_PERFMON` (or root). Backend: aya / eBPF.
+- macOS: `sudo`, SIP-aware target. Backend: shell-out to `dtrace`.
+- Windows: Administrator (`SeSystemProfilePrivilege`). Backend: ferrisetw / NT Kernel Logger.
 
 **Args:**
 | name | type | default | meaning |
@@ -144,9 +150,13 @@ Ask Claude:
 }
 ```
 
-**How it works:** A real eBPF `raw_syscalls/sys_enter` tracepoint is loaded via `aya`. The BPF program increments a kernel `HashMap` keyed by `(tgid << 32) | syscall_id`. After `duration_ms`, userspace reads the map and aggregates per PID.
+**Backends:**
 
-**Permissions:** Trishul performs a capability precheck on `/proc/self/status` (`CapEff:` line) before any BPF call. If `CAP_BPF` or `CAP_PERFMON` is missing, the tool returns a structured error with a `setcap` hint instead of attempting a load that would fail with a confusing kernel errno.
+- **Linux**: real eBPF `raw_syscalls/sys_enter` tracepoint loaded via `aya`. The BPF program increments a kernel `HashMap<(tgid<<32)|syscall_id, u64>`. After `duration_ms`, userspace reads the map and aggregates per PID. Syscall names resolved from a built-in x86_64 table.
+- **macOS**: shell-out to `/usr/sbin/dtrace -n 'syscall:::entry { @[pid, probefunc] = count(); }'` with a `tick-Nms { exit(0); }` so the script self-terminates at the requested duration. Output is parsed line-by-line into per-PID syscall counts. Syscall names are reported directly by DTrace (`probefunc`).
+- **Windows**: subscribes to the NT Kernel Logger session with the `SystemCall` flag via `ferrisetw`. Each `SysCallEnter` event is aggregated into a `HashMap<(pid, syscall_address), u64>`. Syscall "names" are returned as the hex address of the kernel function (resolving to symbolic names needs the kernel PDB, deferred).
+
+**Permissions:** A precheck (Linux) / structured error (macOS, Windows) surfaces `RequiresCapability` with the exact remediation command instead of a confusing kernel/driver error.
 
 Ask Claude:
 > "Is pid 4242 spinning on epoll right now? Trace it for 2 seconds."

@@ -4,8 +4,7 @@ pub mod net;
 pub mod proc;
 pub mod usb;
 
-// Linux-only collectors. eBPF does not exist on macOS or Windows; the
-// corresponding MCP tools return a structured "unsupported on this OS"
-// error on other platforms.
-#[cfg(target_os = "linux")]
-pub mod ebpf;
+// Cross-platform syscall trace via aya/eBPF (Linux), dtrace shell-out (macOS),
+// ferrisetw/ETW (Windows).
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+pub mod syscall_trace;

@@ -55,9 +55,9 @@ Full wiring guides (Claude Desktop, Claude Code, Cursor, Continue, Zed, Agent SD
 | `process_detail` | linux · macos · windows | userspace | one PID: status, exe, cwd, environment (capped at 100 vars × 256 B/value) |
 | `network_listeners` | linux · macos · windows | userspace | TCP/UDP LISTEN sockets resolved to owning PID (cap 500) |
 | `usb_devices` | linux · macos · windows | userspace | USB topology via `nusb` (pure Rust, no libusb system dep) |
-| `syscall_trace` | **linux only** | **CAP_BPF + CAP_PERFMON** | eBPF `raw_syscalls/sys_enter` tracepoint snapshot of per-PID syscall counts; duration clamped to 10–30000 ms |
+| `syscall_trace` | linux · macos · windows | varies by OS (see below) | per-PID syscall counts over a window; backend differs per OS |
 
-6 of 7 tools are fully cross-platform. `syscall_trace` is Linux-only because eBPF doesn't exist on macOS or Windows; on those hosts the tool returns a structured MCP error instead of crashing.
+**All 7 tools are cross-platform.** `syscall_trace` dispatches to a different kernel primitive on each OS — see the next section for the privilege model.
 
 Every tool accepts an optional `summary_only: true` argument that drops the `data` payload — useful when you want the one-line synthesis without the full structured response. The MCP server also enforces a 20 KB hard budget on every response and replaces oversize `data` with a stub that points the LLM to narrower args.
 
@@ -124,13 +124,29 @@ The six cross-platform tools share a single source path that abstracts over OS-l
 - **`netstat2`** wraps `/proc/net/{tcp,udp}{,6}` on Linux, `libproc.proc_pidsocketinfo` on macOS, and `GetExtendedTcpTable` / `GetExtendedUdpTable` on Windows. Used by `network_listeners`.
 - **`nusb`** is a pure-Rust USB stack — `usbfs` on Linux, IOKit on macOS, WinUSB on Windows. No libusb system dep. Used by `usb_devices`.
 
-`syscall_trace` is the only honest exception:
+### `syscall_trace` per-OS
 
-| Tool | Linux backend | Why no macOS/Windows |
-|---|---|---|
-| `syscall_trace` | eBPF (`raw_syscalls/sys_enter`) via `aya` | eBPF doesn't exist outside Linux. macOS DTrace is deprecated and SIP-restricted on Apple Silicon; Windows would need an ETW provider (`Microsoft-Windows-Kernel-System`). Both are separate projects. |
+| OS | Backend | Privileges | Notes |
+|---|---|---|---|
+| Linux | `aya` / eBPF tracepoint `raw_syscalls/sys_enter` | CAP_BPF + CAP_PERFMON | `setcap cap_bpf,cap_perfmon=eip trishul-mcp` lets you call it without sudo at runtime. |
+| macOS | shell-out to `/usr/sbin/dtrace` | `sudo` + SIP-aware target | The only deliberate shell-out in the codebase. DTrace on modern macOS is restricted by System Integrity Protection — it can observe non-Apple-signed processes by default, but Apple-signed system binaries require partially-disabled SIP. Trishul surfaces a clear `RequiresCapability` error pointing here when this happens. |
+| Windows | `ferrisetw` / NT Kernel Logger `SystemCall` events | Administrator (`SeSystemProfilePrivilege`) | Pure-Rust ETW consumer. Returns per-PID + per-syscall-address counts. Resolving the address to a human name requires the kernel PDB (not shipped). |
 
-When the LLM calls `syscall_trace` from a macOS or Windows host, it gets a structured "unsupported on this OS" MCP error pointing to this section. No silent failures, no crashes.
+A structured `RequiresCapability` error is returned when the host lacks the necessary privilege, with the exact remediation command in the error message.
+
+### macOS DTrace setup
+
+Out of the box on a modern Mac, DTrace can profile most user processes if invoked as root. Running the MCP server itself under `sudo` (or launching Claude Desktop after `sudo trishul-mcp serve`) is the simplest path.
+
+If you need to trace Apple-signed binaries (Safari, Mail, the OS itself), you'll need to relax SIP. **This is a security regression — only do it on a development machine, and undo it when finished:**
+
+```bash
+# Boot to Recovery (Apple Silicon: hold power; Intel: ⌘R during boot), open Terminal:
+csrutil enable --without dtrace
+# reboot; trishul-mcp now sees system processes too.
+```
+
+To restore: boot to Recovery and run `csrutil enable`.
 
 ### Compile-target verification
 
