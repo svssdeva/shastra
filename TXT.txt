@@ -1,0 +1,32 @@
+2. TRISHUL — MCP server that gives Claude a body in your machine.
+  
+  A polished MCP server (Rust) exposing real OS-level superpowers Claude doesn't
+   have: live syscall tracing (eBPF on Linux / dtrace on macOS), USB device
+  introspection, process trees, GPU telemetry. Not "tools for an agent" — the 
+  agent gets eyes and reflexes into the physical machine.
+  - Why woah: MCP servers are flooding the ecosystem but 99% are CRUD-over-APIs.
+   A Rust MCP that streams a live htop-grade view to Claude is rare and useful.
+  - Why you: Fills three gaps (MCP, CLI/observability, kernel-adjacent). You
+  already built Trinetra — same instincts.
+  
+  3. DARSHAN — Local-first vision agent. One physical task. Zero cloud.
+  
+  Pick one: dashcam clip-extractor (continuous CV on driving footage → auto-clip
+   incidents), or Devanagari OCR + translation for handwritten manuscripts.
+  Fully on-device — Whisper-class STT + a vision model (candle/burn in Rust) +
+  Capacitor app.
+  - Why woah: "It runs on my phone, my data never leaves" + a useful
+  physical-world task. Privacy story is undefeated in 2026.
+  - Why you: Capacitor + Rust + mythos branding all natural; fills
+  CV/on-device-ML gap completely.
+  
+  4. NAADI — Multiplayer WebGPU sandbox: code together, render together.
+  
+  Real-time collaborative coding environment where you write WGSL/JS and every
+  collaborator's GPU renders the shared scene simultaneously. CRDT-backed
+  (Yjs/Loro), WebRTC for cursors, WebGPU for the canvas.
+  - Why woah: Collaborative shader editors barely exist; combining CRDT + WebGPU
+   in a single URL is genuinely rare.
+  - Why you: Fills two gaps at once (multiplayer + WebGPU). Heaviest scope of
+  the four.
+
