@@ -23,6 +23,7 @@ tracing-subscriber = { workspace = true }
 clap = { workspace = true }
 sysinfo = { workspace = true }
 netstat2 = { workspace = true }
+nusb = { workspace = true }
 
 # Linux-only specialised paths: procfs reads, USB sysfs, eBPF.
 [target.'cfg(target_os = "linux")'.dependencies]

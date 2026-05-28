@@ -36,6 +36,8 @@ pub fn collect_network_listeners() -> Result<CollectorOutput, TrishulError> {
             .map(|p| p.name().to_string_lossy().into_owned())
     };
 
+    const MAX_LISTENERS: usize = 500;
+
     let mut listeners = Vec::new();
     for info in infos {
         let pid = info.associated_pids.first().copied();
@@ -66,14 +68,22 @@ pub fn collect_network_listeners() -> Result<CollectorOutput, TrishulError> {
         }
     }
     listeners.sort_by_key(|l| (l.proto, l.local_port));
+    let total = listeners.len();
+    let truncated = total > MAX_LISTENERS;
+    listeners.truncate(MAX_LISTENERS);
 
     let summary = format!(
-        "{} listening socket(s) ({} resolved to PIDs)",
-        listeners.len(),
+        "{} listening socket(s) ({} resolved to PIDs){}",
+        total,
         listeners.iter().filter(|l| l.pid.is_some()).count(),
+        if truncated {
+            format!(", returning first {MAX_LISTENERS}")
+        } else {
+            String::new()
+        },
     );
     let data = json!({ "listeners": listeners });
-    Ok(CollectorOutput::new(summary, data))
+    Ok(CollectorOutput::new(summary, data).with_truncated(truncated))
 }
 
 #[cfg(test)]

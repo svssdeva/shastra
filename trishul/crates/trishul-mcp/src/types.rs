@@ -1,7 +1,13 @@
 use schemars::JsonSchema;
 use serde::Serialize;
-use serde_json::Value;
+use serde_json::{Value, json};
 use thiserror::Error;
+
+/// Hard byte cap on a tool response's serialised JSON. Roughly ~5000 tokens at
+/// 4 chars/token; large enough for a full process tree on a typical host but
+/// small enough to keep Claude's context tight. Exceeding it replaces `data`
+/// with a stub and flips `truncated = true`.
+pub const TOOL_RESPONSE_BUDGET_BYTES: usize = 20_000;
 
 /// Uniform response shape every collector returns.
 ///
@@ -23,6 +29,7 @@ impl CollectorOutput {
         Self { summary: summary.into(), data, warnings: Vec::new(), truncated: false }
     }
 
+    #[allow(dead_code)]
     pub fn with_warning(mut self, w: impl Into<String>) -> Self {
         self.warnings.push(w.into());
         self
@@ -32,9 +39,37 @@ impl CollectorOutput {
         self.truncated = truncated;
         self
     }
+
+    /// Optionally strip `data` (for `summary_only` mode) and enforce a hard
+    /// byte budget on the serialized payload. If the encoded JSON exceeds the
+    /// budget, `data` is replaced with a stub describing the size and
+    /// `truncated` is set.
+    pub fn finalize(mut self, summary_only: bool, budget: usize) -> Self {
+        if summary_only {
+            self.data = json!(null);
+            return self;
+        }
+        // Cheap pre-check: estimate the size of just the data field.
+        if let Ok(encoded) = serde_json::to_vec(&self.data)
+            && encoded.len() > budget
+        {
+            self.data = json!({
+                "_truncated": true,
+                "_reason": format!(
+                    "data exceeded {} byte budget (was {} bytes); call again with narrower args (limit, pid, top_per_pid).",
+                    budget,
+                    encoded.len(),
+                ),
+                "_byte_count": encoded.len(),
+            });
+            self.truncated = true;
+        }
+        self
+    }
 }
 
 #[derive(Debug, Error)]
+#[allow(dead_code)] // Permission / MissingDep variants are surfaced by collectors that don't exist yet.
 pub enum TrishulError {
     #[error("permission denied reading {path}")]
     Permission { path: String },

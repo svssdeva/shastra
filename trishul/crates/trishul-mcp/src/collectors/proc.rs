@@ -151,6 +151,12 @@ pub fn collect_process_detail(pid: u32) -> Result<CollectorOutput, TrishulError>
 
     // Environment retrieval varies by platform: Linux returns via /proc/<pid>/environ
     // when permitted, macOS uses libproc (sysinfo handles both).
+    //
+    // Bounded to keep responses LLM-friendly:
+    //   - max 100 vars
+    //   - max 256 bytes per value (longer values get truncated with a marker)
+    const MAX_ENV_VARS: usize = 100;
+    const MAX_VALUE_BYTES: usize = 256;
     let mut warnings = Vec::new();
     let env: Option<HashMap<String, String>> = {
         let env_pairs = p.environ();
@@ -158,15 +164,25 @@ pub fn collect_process_detail(pid: u32) -> Result<CollectorOutput, TrishulError>
             warnings.push(format!("could not read environment for pid {} (perms or empty)", pid));
             None
         } else {
-            Some(
-                env_pairs
-                    .iter()
-                    .filter_map(|s| {
-                        let s = s.to_string_lossy().into_owned();
-                        s.split_once('=').map(|(k, v)| (k.to_string(), v.to_string()))
-                    })
-                    .collect(),
-            )
+            let total = env_pairs.len();
+            let mut map = HashMap::with_capacity(env_pairs.len().min(MAX_ENV_VARS));
+            for entry in env_pairs.iter().take(MAX_ENV_VARS) {
+                let s = entry.to_string_lossy().into_owned();
+                if let Some((k, v)) = s.split_once('=') {
+                    let v_out = if v.len() > MAX_VALUE_BYTES {
+                        format!("{}…({} bytes total)", &v[..MAX_VALUE_BYTES], v.len())
+                    } else {
+                        v.to_string()
+                    };
+                    map.insert(k.to_string(), v_out);
+                }
+            }
+            if total > MAX_ENV_VARS {
+                warnings.push(format!(
+                    "environment truncated to first {MAX_ENV_VARS} of {total} variables"
+                ));
+            }
+            Some(map)
         }
     };
 

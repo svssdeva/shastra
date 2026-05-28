@@ -48,8 +48,10 @@ async fn serve() -> Result<()> {
     Ok(())
 }
 
+type SelftestFn = fn() -> Result<()>;
+
 fn selftest(only: Option<String>) -> Result<()> {
-    let runs: &[(&str, fn() -> Result<()>)] = &[
+    let runs: &[(&str, SelftestFn)] = &[
         ("host_info", run_host_info),
         ("process_tree", run_process_tree),
         ("proc_snapshot", run_proc_snapshot),
