@@ -42,7 +42,7 @@ Once wired in, these prompts all just work:
 # Linux extras: rustup toolchain install nightly --component rust-src && cargo install bpf-linker
 # macOS extras: xcode-select --install
 # Windows: works out of the box with stable Rust
-git clone <your-fork>/trishul.git && cd trishul
+git clone https://github.com/svssdeva/shastra.git && cd shastra/trishul
 cargo install --path crates/trishul-mcp
 trishul-mcp selftest    # every tool should print "ok"
 ```

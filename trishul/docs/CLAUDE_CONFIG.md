@@ -28,7 +28,7 @@ rustup toolchain install nightly --component rust-src
 cargo install bpf-linker
 
 # 2. Build + install Trishul
-git clone <your-fork>/trishul.git && cd trishul
+git clone https://github.com/svssdeva/shastra.git && cd shastra/trishul
 cargo install --path crates/trishul-mcp
 # → ~/.cargo/bin/trishul-mcp
 ```
@@ -63,7 +63,7 @@ Trishul builds on macOS with the standard Rust toolchain:
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 xcode-select --install   # provides libproc.h headers
-git clone <your-fork>/trishul.git && cd trishul
+git clone https://github.com/svssdeva/shastra.git && cd shastra/trishul
 cargo install --path crates/trishul-mcp
 # → ~/.cargo/bin/trishul-mcp
 ```
@@ -94,8 +94,8 @@ winget install --id Rustlang.Rustup -e
 rustup toolchain install stable
 
 # 2. Build + install Trishul
-git clone <your-fork>/trishul.git
-cd trishul
+git clone https://github.com/svssdeva/shastra.git
+cd shastra/trishul
 cargo install --path crates/trishul-mcp
 # → %USERPROFILE%\.cargo\bin\trishul-mcp.exe
 ```

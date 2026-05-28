@@ -60,7 +60,7 @@ Cross-platform: **6 of 7 tools work identically on Linux, macOS, and Windows.** 
 `agentic-skills/` is a `git submodule` pinned to a specific commit of [the skill library](https://github.com/svssdeva/agentic-skills). Clone with:
 
 ```bash
-git clone --recurse-submodules <this-repo-url>
+git clone --recurse-submodules https://github.com/svssdeva/shastra.git
 # or, after a plain clone:
 git submodule update --init --recursive
 ```

@@ -8,7 +8,7 @@ edition = "2024"
 version = "0.1.0"
 license = "MIT"
 authors = ["svssdeva"]
-repository = "https://github.com/svssdeva/trishul"
+repository = "https://github.com/svssdeva/shastra"
 
 [workspace.dependencies]
 rmcp = { version = "1.7", features = ["server", "transport-io", "macros"] }
