@@ -111,16 +111,22 @@ You should see three JSON responses — server identity, the tool catalog, and t
 
 ## 7. Permissions
 
-All MVP tools work as your normal user — no `sudo`, no `setcap`. They read from `/proc`, `/sys`, and `/etc`. The only paths that may show partial data are:
+Most tools work as your normal user — no `sudo`, no `setcap`. They read from `/proc`, `/sys`, and `/etc`. Partial-data cases:
 
 - `process_detail.env` — kernel hides other users' environments. Trishul returns `null` and emits a warning rather than failing.
 - `network_listeners` → PID resolution requires reading other users' `/proc/<pid>/fd/`; cross-user PIDs may show as `null`.
 
-When **Phase 5 (eBPF syscall trace)** lands, it needs `CAP_BPF` (or root). Trishul detects this and returns a structured error pointing the user to:
+**`syscall_trace` is special.** It loads an eBPF tracepoint and needs `CAP_BPF` + `CAP_PERFMON`. Trishul precheck-detects this and returns a structured `RequiresCapability` error pointing the user to:
 
 ```bash
 sudo setcap cap_bpf,cap_perfmon=eip $(which trishul-mcp)
 ```
+
+After that, `syscall_trace` works with no `sudo` at runtime — the file capability is sticky.
+
+## 7b. Platform
+
+**Trishul is Linux-only.** The binary will fail to compile on macOS or Windows with a clear `compile_error!`. If you're a Mac or Windows user and want this, the project README has a table of equivalent native APIs that a future backend would need to use.
 
 ## 8. Stopping & uninstalling
 

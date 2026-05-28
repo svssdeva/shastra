@@ -112,11 +112,52 @@ Ask Claude:
 
 ---
 
-## Deferred (Phase 5+)
+## `syscall_trace`
+
+**Linux only.** **Requires `CAP_BPF` + `CAP_PERFMON`** (or root).
+
+**Args:**
+| name | type | default | meaning |
+|---|---|---|---|
+| `duration_ms` | int | `1000` | How long to trace, in milliseconds |
+| `top_per_pid` | int | `10` | Top-N syscalls returned per PID (by count desc) |
+| `pid` | int? | unset | Filter to a single PID; otherwise traces every PID seen in the window |
+
+**Returns:**
+```json
+{
+  "duration_secs": 1.0,
+  "total_calls": 412318,
+  "pids_traced": 47,
+  "by_pid": [
+    {
+      "pid": 4242,
+      "comm": "postgres",
+      "total": 91234,
+      "top": [
+        { "nr": 232, "name": "epoll_wait", "count": 41021 },
+        { "nr": 0,   "name": "read",       "count": 18934 },
+        { "nr": 1,   "name": "write",      "count": 12001 }
+      ]
+    }
+  ]
+}
+```
+
+**How it works:** A real eBPF `raw_syscalls/sys_enter` tracepoint is loaded via `aya`. The BPF program increments a kernel `HashMap` keyed by `(tgid << 32) | syscall_id`. After `duration_ms`, userspace reads the map and aggregates per PID.
+
+**Permissions:** Trishul performs a capability precheck on `/proc/self/status` (`CapEff:` line) before any BPF call. If `CAP_BPF` or `CAP_PERFMON` is missing, the tool returns a structured error with a `setcap` hint instead of attempting a load that would fail with a confusing kernel errno.
+
+Ask Claude:
+> "Is pid 4242 spinning on epoll right now? Trace it for 2 seconds."
+> "Which processes are doing the most file I/O?"
+
+---
+
+## Deferred
 
 These tools are designed in the spec but not yet implemented:
 
-- `syscall_trace` — eBPF tracepoint snapshot of recent syscalls for a PID. Needs `CAP_BPF`.
 - `gpu_telemetry` — NVIDIA (NVML), AMD (sysfs `hwmon`), Intel (sysfs).
 - `block_devices` — disks, partitions, filesystems, SMART summary if `smartctl` is present.
 

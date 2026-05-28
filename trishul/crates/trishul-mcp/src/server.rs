@@ -60,6 +60,26 @@ pub struct ProcessDetailArgs {
     pub pid: i32,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct SyscallTraceArgs {
+    /// How long to trace (milliseconds). Defaults to 1000.
+    #[serde(default = "default_duration_ms")]
+    pub duration_ms: u64,
+    /// Top-N syscalls to return per PID, sorted by count. Defaults to 10.
+    #[serde(default = "default_top_per_pid")]
+    pub top_per_pid: usize,
+    /// Filter to a single PID. If omitted, traces every PID seen during the window.
+    #[serde(default)]
+    pub pid: Option<u32>,
+}
+
+fn default_duration_ms() -> u64 {
+    1000
+}
+fn default_top_per_pid() -> usize {
+    10
+}
+
 #[tool_router]
 impl Trishul {
     pub fn new() -> Self {
@@ -123,6 +143,34 @@ impl Trishul {
     async fn usb_devices(&self) -> Result<CallToolResult, McpError> {
         let out = collectors::usb::collect_usb_devices().map_err(map_err)?;
         Ok(into_call_result(out))
+    }
+
+    #[tool(
+        description = "eBPF syscall trace: attach a raw_syscalls/sys_enter tracepoint for `duration_ms` and return per-PID top syscalls by count. Requires CAP_BPF and CAP_PERFMON (or root). Linux only."
+    )]
+    async fn syscall_trace(
+        &self,
+        Parameters(args): Parameters<SyscallTraceArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        #[cfg(target_os = "linux")]
+        {
+            let out = collectors::ebpf::collect_syscall_trace(
+                std::time::Duration::from_millis(args.duration_ms),
+                args.top_per_pid,
+                args.pid,
+            )
+            .await
+            .map_err(map_err)?;
+            Ok(into_call_result(out))
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            let _ = args;
+            Err(McpError::internal_error(
+                "syscall_trace is Linux-only (requires eBPF)",
+                None,
+            ))
+        }
     }
 }
 

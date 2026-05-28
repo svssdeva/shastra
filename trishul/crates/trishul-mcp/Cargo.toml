@@ -24,5 +24,13 @@ clap = { workspace = true }
 procfs = { workspace = true }
 nix = { workspace = true }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+aya = { workspace = true }
+aya-log = { workspace = true }
+
+[build-dependencies]
+anyhow = { workspace = true }
+aya-build = "0.1"
+
 [dev-dependencies]
 serde_json = { workspace = true }

@@ -1,3 +1,15 @@
+#![cfg_attr(
+    not(target_os = "linux"),
+    deny(unused),
+    allow(unused_imports, dead_code, unused_variables)
+)]
+
+#[cfg(not(target_os = "linux"))]
+compile_error!(
+    "trishul-mcp is currently Linux-only. macOS and Windows backends are not yet implemented \
+     because the collectors rely on /proc, /sys, and eBPF. Track support at the project README."
+);
+
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use rmcp::ServiceExt;
@@ -56,6 +68,8 @@ fn selftest(only: Option<String>) -> Result<()> {
         ("process_detail_self", run_process_detail_self),
         ("network_listeners", run_network_listeners),
         ("usb_devices", run_usb_devices),
+        #[cfg(target_os = "linux")]
+        ("syscall_trace", run_syscall_trace),
     ];
     let mut fails = 0;
     for (name, run) in runs {
@@ -114,4 +128,32 @@ fn run_usb_devices() -> Result<()> {
     let out = collectors::usb::collect_usb_devices()?;
     println!("  · {}", out.summary);
     Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn run_syscall_trace() -> Result<()> {
+    let out = tokio::task::block_in_place(|| {
+        tokio::runtime::Handle::current().block_on(
+            collectors::ebpf::collect_syscall_trace(
+                std::time::Duration::from_millis(500),
+                5,
+                None,
+            ),
+        )
+    });
+    match out {
+        Ok(o) => {
+            println!("  · {}", o.summary);
+            Ok(())
+        }
+        Err(e) => {
+            println!("  · (skip) {e}");
+            // Don't fail selftest on CAP_BPF missing — that's expected without root.
+            if matches!(e, crate::types::TrishulError::RequiresCapability(_)) {
+                Ok(())
+            } else {
+                Err(e.into())
+            }
+        }
+    }
 }
