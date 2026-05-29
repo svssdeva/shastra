@@ -1,0 +1,21 @@
+{
+  "name": "darshan",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun --filter @darshan/web dev",
+    "build": "bun --filter '*' build",
+    "test": "bun --filter '*' test",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "build:wasm": "bun --filter @darshan/inference-core-wasm build:wasm"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.16",
+    "typescript": "^6.0.3"
+  }
+}

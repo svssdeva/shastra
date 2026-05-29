@@ -1,0 +1,50 @@
+---
+import '../styles/global.css';
+import '../styles/docs.css';
+// Single source of truth for the docs lives at naadi/docs/GUIDE.md.
+// Astro renders it directly — no duplication between repo and web.
+import { Content, getHeadings } from '../../../../docs/GUIDE.md';
+
+export const prerender = true;
+
+const headings = getHeadings();
+// TOC shows top-level sections (h2). Sub-points are visible inline in the doc.
+const sections = headings.filter((h) => h.depth === 2);
+const title = 'Naadi · Docs';
+---
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{title}</title>
+  <meta name="viewport" content="width=device-width" />
+  <meta name="description" content="A-Z reference for naadi: architecture, packages, wire protocols, deploy, security." />
+  <meta property="og:title" content="Naadi · Documentation" />
+</head>
+<body>
+  <header class="doc-nav">
+    <a href="/" class="wordmark">Naadi<span>.</span></a>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/docs">Docs</a>
+      <a href="https://github.com/svssdeva" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <div class="doc-layout">
+    <main class="doc">
+      <Content />
+    </main>
+
+    <aside class="toc" aria-label="Table of contents">
+      <span class="caption-uppercase">Contents</span>
+      <ol>
+        {sections.map((h) => (
+          <li>
+            <a href={`#${h.slug}`}>{h.text}</a>
+          </li>
+        ))}
+      </ol>
+    </aside>
+  </div>
+</body>
+</html>

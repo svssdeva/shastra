@@ -1,0 +1,34 @@
+{
+  "name": "@naadi/web",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --port 4322",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "astro": "^6.0.0",
+    "@astrojs/preact": "^5.0.0",
+    "preact": "^10.24.0",
+    "tailwindcss": "^4.1.0",
+    "@tailwindcss/vite": "^4.1.0",
+    "@fontsource-variable/inter": "^5.1.0",
+    "@fontsource-variable/jetbrains-mono": "^5.1.0",
+    "@naadi/gpu": "workspace:*",
+    "@naadi/doc": "workspace:*",
+    "@naadi/net": "workspace:*",
+    "loro-crdt": "^1.5.0",
+    "codemirror": "^6.0.1",
+    "@codemirror/state": "^6.4.1",
+    "@codemirror/view": "^6.36.0",
+    "@codemirror/commands": "^6.7.0",
+    "@codemirror/language": "^6.10.6",
+    "@codemirror/lint": "^6.8.4",
+    "@codemirror/search": "^6.5.8",
+    "@lezer/highlight": "^1.2.1"
+  },
+  "devDependencies": {
+    "@webgpu/types": "^0.1.50"
+  }
+}

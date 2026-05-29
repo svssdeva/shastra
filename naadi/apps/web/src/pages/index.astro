@@ -1,0 +1,117 @@
+---
+import '../styles/global.css';
+export const prerender = true;
+const title = 'Naadi · Multiplayer WebGPU shader sandbox';
+---
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{title}</title>
+  <meta name="viewport" content="width=device-width" />
+  <meta property="og:title" content="Naadi" />
+  <meta property="og:description" content="Co-edit a WGSL shader. Every collaborator's GPU renders the shared scene." />
+</head>
+<body>
+  <header class="top-nav">
+    <a href="/" class="wordmark">Naadi<span>.</span></a>
+    <nav>
+      <a href="/docs">Docs</a>
+      <a href="https://github.com/svssdeva" target="_blank" rel="noopener">GitHub</a>
+      <button id="create-room" type="button" class="btn-primary">Create room →</button>
+    </nav>
+  </header>
+
+  <main class="mx-auto max-w-[1280px] px-6">
+    <section class="grid grid-cols-1 md:grid-cols-[7fr_5fr] items-center gap-8 py-section border-b border-[var(--color-hairline)]">
+      <div>
+        <span class="badge-pill mono mb-4 inline-flex items-center font-[var(--font-mono)]">
+          webrtc · webgpu · crdt · v0.1
+        </span>
+        <h1 class="display-xl">Multiplayer WGSL.<br />One URL.</h1>
+        <p class="text-[18px] text-[var(--color-body)] my-4 max-w-[42ch]">
+          Open a room. Drop the link in chat. Everyone edits the same WGSL fragment shader —
+          every collaborator's GPU renders the scene independently. CRDT-backed.
+          Peer-to-peer. No servers in the data path.
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <button id="create-room-hero" type="button" class="btn-primary">Create room →</button>
+          <a href="https://github.com/svssdeva" target="_blank" rel="noopener" class="btn-secondary">View source</a>
+        </div>
+      </div>
+      <div class="code-window">
+        <div class="chrome"><i></i><i></i><i></i><span>shader.wgsl</span></div>
+<pre class="m-0 font-mono whitespace-pre"><span class="cm">// shared between every peer in the room</span>
+<span class="kw">@fragment</span>
+<span class="kw">fn</span> <span class="id">main</span>(<span class="kw">@location</span>(<span class="num">0</span>) uv: <span class="id">vec2</span>&lt;<span class="kw">f32</span>&gt;) -&gt; <span class="kw">@location</span>(<span class="num">0</span>) <span class="id">vec4</span>&lt;<span class="kw">f32</span>&gt; &lbrace;
+  <span class="kw">let</span> t = u_time * <span class="num">0.5</span>;
+  <span class="kw">let</span> col = <span class="num">0.5</span> + <span class="num">0.5</span> * <span class="id">cos</span>(t + uv.xyx + <span class="id">vec3</span>(<span class="num">0.</span>, <span class="num">2.</span>, <span class="num">4.</span>));
+  <span class="kw">return</span> <span class="id">vec4</span>(col, <span class="num">1.0</span>);
+&rbrace;</pre>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-8 py-section border-b border-[var(--color-hairline)]">
+      <div>
+        <div class="stat-display">0 ms</div>
+        <div class="text-[var(--color-muted)] text-[13px] mt-2 max-w-[24ch]">
+          Server bandwidth after handshake. WebRTC DataChannel carries every keystroke.
+        </div>
+      </div>
+      <div>
+        <div class="stat-display">~6</div>
+        <div class="text-[var(--color-muted)] text-[13px] mt-2 max-w-[24ch]">
+          Peers per room in mesh mode. Beyond that, latency wins.
+        </div>
+      </div>
+      <div>
+        <div class="stat-display">1 GPU</div>
+        <div class="text-[var(--color-muted)] text-[13px] mt-2 max-w-[24ch]">
+          Per person. Naadi is BYO-silicon — your shader, your frames.
+        </div>
+      </div>
+    </section>
+
+    <section class="py-section">
+      <div class="rounded-lg p-16 flex flex-wrap items-center justify-between gap-8" style="background: var(--color-primary); color: var(--color-on-primary);">
+        <h2 class="display-md max-w-[20ch]" style="color: var(--color-on-primary);">
+          Open a room. Send the link.
+        </h2>
+        <button
+          id="create-room-cta"
+          type="button"
+          style="background: var(--color-on-primary); color: var(--color-primary); border: 0; height: 40px; padding: 0 20px; font-size: 14px; font-weight: 600; border-radius: var(--radius-md); cursor: pointer;"
+        >
+          Create room →
+        </button>
+      </div>
+    </section>
+
+    <footer class="py-12 text-[var(--color-muted)] text-sm flex flex-wrap justify-between gap-4">
+      <div>
+        <div class="text-[var(--color-on-dark)] font-bold text-base" style="letter-spacing: -0.3px;">
+          Naadi<span style="color: var(--color-primary);">.</span>
+        </div>
+        <div class="mt-2">Astro · Preact · Tailwind v4 · WebGPU · WGSL · Loro · WebRTC · Bun</div>
+      </div>
+      <div>Requires WebGPU + WebRTC. Desktop Chrome / Edge / Arc.</div>
+    </footer>
+  </main>
+
+  <script>
+    function newRoomId(): string {
+      // 128-bit random, url-safe hex
+      const bytes = crypto.getRandomValues(new Uint8Array(16));
+      let hex = '';
+      for (const b of bytes) hex += b.toString(16).padStart(2, '0');
+      return hex;
+    }
+    function go() {
+      // Room ID lives in the URL fragment so /r stays a single static page.
+      window.location.assign(`/r#${newRoomId()}`);
+    }
+    for (const id of ['create-room', 'create-room-hero', 'create-room-cta']) {
+      document.getElementById(id)?.addEventListener('click', go);
+    }
+  </script>
+</body>
+</html>

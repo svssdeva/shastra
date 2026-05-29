@@ -1,0 +1,20 @@
+# Darshan-specific ignores. The workspace-level /.gitignore already covers
+# generic JS/Rust patterns (node_modules, dist, .astro, .vite, target, env
+# files, OS junk, editor noise, model weights, coverage). This file only
+# layers on what's unique to darshan or what we want to keep even if
+# darshan ever moves out of the yolo workspace.
+
+# Built WASM artifact — produced by `bun run build:wasm` from the Rust crate
+# in packages/inference-core-wasm/. Regenerate locally; do not commit.
+apps/*/public/wasm/*.wasm
+
+# Tesseract.js worker / language data, if it ever spills to disk
+# (normally it goes to IndexedDB; this is a safety net).
+apps/*/public/tessdata/
+**/tesseract-*.wasm
+
+# Lockfiles for package managers we don't use — bun.lock is checked in;
+# stray npm/yarn/pnpm copies are not.
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

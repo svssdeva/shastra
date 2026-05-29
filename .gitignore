@@ -1,5 +1,6 @@
-# Workspace-level ignores for yolo. Each subproject (yantra/, trishul/)
-# also has its own .gitignore for stack-specific build artifacts.
+# Workspace-level ignores for shastra (the yolo/ checkout). Each subproject
+# (yantra/, trishul/, naadi/, darshan/) also has its own .gitignore for
+# stack-specific build artifacts that don't fit a workspace-wide pattern.
 
 # Rust build output (subprojects symlink target/ to /tmp for noexec mounts;
 # either way, never commit it).
@@ -72,6 +73,19 @@ lcov.info
 *.tar
 *.tar.gz
 *.zip
+
+# ML model weights — never commit. Darshan fetches at runtime from HF + caches
+# via the browser Cache API. Models in a checkout are accidents.
+**/*.onnx
+**/*.gguf
+**/*.safetensors
+**/*.bin
+**/*.pt
+**/*.pth
+
+# Built WASM artifacts produced by subproject build scripts (e.g. darshan/packages/inference-core-wasm).
+# Regenerate locally with `bun run build:wasm`. Source crate is checked in.
+**/apps/*/public/wasm/*.wasm
 
 # Junk that's shown up here historically.
 TXT.txt

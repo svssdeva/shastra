@@ -1,0 +1,285 @@
+/* Naadi docs page styling. Structure modelled on darshan/apps/web/src/styles/docs.css —
+   content on the left, sticky TOC card on the right. Tokens adapted to naadi's
+   palette (yellow primary, --space-* scale). */
+
+.doc-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 24px;
+  background: var(--color-canvas);
+  border-bottom: 1px solid var(--color-hairline);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.doc-nav .wordmark {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-on-dark);
+  letter-spacing: -0.5px;
+}
+.doc-nav .wordmark span {
+  color: var(--color-primary);
+}
+.doc-nav nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+.doc-nav nav a:hover {
+  color: var(--color-on-dark);
+}
+
+.doc-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 48px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 24px 96px;
+  align-items: start;
+}
+
+.doc {
+  min-width: 0;
+  color: var(--color-body);
+  font-size: 16px;
+  line-height: 1.65;
+}
+.doc h1 {
+  font-size: 56px;
+  font-weight: 700;
+  letter-spacing: -2px;
+  line-height: 1.05;
+  margin: 0 0 12px;
+  color: var(--color-on-dark);
+}
+.doc h1 + p,
+.doc h1 + blockquote {
+  font-size: 18px;
+  color: var(--color-body);
+  margin: 0 0 var(--space-section);
+  max-width: 60ch;
+}
+.doc h2 {
+  font-size: 28px;
+  letter-spacing: -0.8px;
+  line-height: 1.2;
+  margin: var(--space-xxl) 0 var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-hairline);
+  color: var(--color-on-dark);
+  font-weight: 700;
+  scroll-margin-top: 88px;
+}
+.doc h3 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0;
+  margin: var(--space-xl) 0 var(--space-xs);
+  color: var(--color-on-dark);
+  scroll-margin-top: 88px;
+}
+.doc h4 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: var(--space-lg) 0 var(--space-xs);
+  color: var(--color-on-dark);
+  scroll-margin-top: 88px;
+}
+.doc p {
+  margin: 0 0 var(--space-md);
+}
+.doc strong {
+  color: var(--color-on-dark);
+  font-weight: 600;
+}
+.doc em {
+  color: var(--color-body-strong);
+  font-style: italic;
+}
+.doc code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--color-surface-card);
+  color: var(--color-primary);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-hairline);
+}
+.doc pre {
+  background: var(--color-surface-card);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-body-strong);
+  overflow-x: auto;
+  margin: 0 0 var(--space-lg);
+}
+.doc pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
+  border: 0;
+  border-radius: 0;
+}
+.doc ul,
+.doc ol {
+  margin: 0 0 var(--space-md);
+  padding-left: var(--space-lg);
+}
+.doc li {
+  margin-bottom: 4px;
+}
+.doc li > p {
+  margin: 0 0 var(--space-xs);
+}
+.doc a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.doc a:hover {
+  text-decoration-thickness: 2px;
+}
+.doc hr {
+  border: 0;
+  border-top: 1px solid var(--color-hairline);
+  margin: var(--space-xl) 0;
+}
+.doc img {
+  max-width: 100%;
+  border-radius: var(--radius-md);
+}
+
+.doc table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 var(--space-lg);
+  font-size: 14px;
+  display: block;
+  overflow-x: auto;
+}
+.doc thead {
+  display: table-header-group;
+}
+.doc tbody {
+  display: table-row-group;
+}
+.doc tr {
+  display: table-row;
+}
+.doc th,
+.doc td {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-hairline);
+  vertical-align: top;
+}
+.doc th {
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+.doc td:first-child {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-on-dark);
+}
+
+.doc blockquote {
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-hairline);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  margin: 0 0 var(--space-lg);
+  color: var(--color-body);
+}
+.doc blockquote p {
+  margin: 4px 0;
+}
+.doc blockquote strong {
+  color: var(--color-primary);
+}
+
+.doc :target {
+  animation: doc-anchor-flash 1.2s ease;
+}
+@keyframes doc-anchor-flash {
+  0% { background: rgba(250, 255, 105, 0.12); }
+  100% { background: transparent; }
+}
+
+.toc {
+  position: sticky;
+  top: 88px;
+  padding: var(--space-md);
+  background: var(--color-surface-card);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  max-height: calc(100vh - 112px);
+  overflow-y: auto;
+}
+.toc .caption-uppercase {
+  display: block;
+  margin-bottom: var(--space-xs);
+}
+.toc ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.toc ol li {
+  margin: 0;
+}
+.toc a {
+  color: var(--color-muted);
+  text-decoration: none;
+  display: block;
+  padding: 3px 0;
+  line-height: 1.45;
+}
+.toc a:hover {
+  color: var(--color-on-dark);
+}
+.toc .is-sub a {
+  padding-left: 12px;
+  font-size: 12px;
+  color: var(--color-muted-soft);
+}
+.toc .is-sub a:hover {
+  color: var(--color-body);
+}
+
+@media (max-width: 900px) {
+  .doc-layout {
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+    padding: 24px 16px 64px;
+  }
+  .toc {
+    position: static;
+    max-height: none;
+    order: -1;
+  }
+  .doc h1 {
+    font-size: 40px;
+  }
+  .doc h2 {
+    font-size: 24px;
+  }
+}

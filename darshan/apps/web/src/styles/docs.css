@@ -1,0 +1,219 @@
+.doc-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 24px;
+  background: var(--color-canvas);
+  border-bottom: 1px solid var(--color-hairline);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.doc-nav .wordmark {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-on-dark);
+  letter-spacing: -0.5px;
+}
+.doc-nav .wordmark span {
+  color: var(--color-accent);
+}
+.doc-nav nav {
+  display: flex;
+  gap: 16px;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+.doc-nav nav a:hover {
+  color: var(--color-on-dark);
+}
+
+.doc-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 48px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 24px 96px;
+  align-items: start;
+}
+
+.doc {
+  min-width: 0;
+  color: var(--color-body);
+  font-size: 16px;
+  line-height: 1.65;
+}
+.doc h1 {
+  font-size: 56px;
+  font-weight: 700;
+  letter-spacing: -2px;
+  line-height: 1.05;
+  margin: 0 0 12px;
+}
+.doc h1 + p.lede {
+  font-size: 18px;
+  color: var(--color-body);
+  margin: 0 0 var(--spacing-section);
+  max-width: 60ch;
+}
+.doc h2 {
+  font-size: 28px;
+  letter-spacing: -0.8px;
+  line-height: 1.2;
+  margin: var(--spacing-xxl) 0 var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-hairline);
+}
+.doc h3 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0;
+  margin: var(--spacing-xl) 0 var(--spacing-xs);
+  color: var(--color-on-dark);
+}
+.doc p {
+  margin: 0 0 var(--spacing-md);
+}
+.doc strong {
+  color: var(--color-on-dark);
+  font-weight: 600;
+}
+.doc code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--color-surface-card);
+  color: var(--color-primary);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+}
+.doc pre {
+  background: var(--color-surface-card);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-body-strong);
+  overflow-x: auto;
+  margin: 0 0 var(--spacing-lg);
+}
+.doc pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
+}
+.doc ul,
+.doc ol {
+  margin: 0 0 var(--spacing-md);
+  padding-left: var(--spacing-lg);
+}
+.doc li {
+  margin-bottom: 4px;
+}
+.doc a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.doc a:hover {
+  color: var(--color-primary);
+}
+
+.doc table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 var(--spacing-lg);
+  font-size: 14px;
+}
+.doc th,
+.doc td {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-hairline);
+  vertical-align: top;
+}
+.doc th {
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+.doc td:first-child {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-on-dark);
+  white-space: nowrap;
+}
+.doc td .yes {
+  color: var(--color-emerald);
+}
+.doc td .no {
+  color: var(--color-rose);
+}
+.doc td .seam {
+  color: var(--color-primary);
+}
+
+.doc .callout {
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-hairline);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin: 0 0 var(--spacing-lg);
+}
+.doc .callout strong {
+  color: var(--color-accent);
+}
+
+.toc {
+  position: sticky;
+  top: 88px;
+  padding: var(--spacing-md);
+  background: var(--color-surface-card);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  max-height: calc(100vh - 112px);
+  overflow-y: auto;
+}
+.toc .caption-uppercase {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+}
+.toc ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.toc ol li {
+  margin: 0;
+}
+.toc a {
+  color: var(--color-muted);
+  text-decoration: none;
+  display: block;
+  padding: 3px 0;
+}
+.toc a:hover {
+  color: var(--color-on-dark);
+}
+
+@media (max-width: 900px) {
+  .doc-layout {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
+  .toc {
+    position: static;
+    max-height: none;
+    order: -1;
+  }
+}

@@ -1,0 +1,21 @@
+[package]
+name = "darshan-inference-core-wasm"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Rust + (future) candle inference core for darshan, compiled to wasm32-unknown-unknown."
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+
+# candle-core lands here once the seam ships. The phase 4 release artifact is intentionally a
+# pure-wasm32 module with no wasm-bindgen dependency so the TS bridge can stay tiny.
+[dependencies]

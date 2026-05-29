@@ -1,0 +1,16 @@
+{
+  "name": "@darshan/inference-core-wasm",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build:wasm": "bash rust/build.sh",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@darshan/inference-core": "workspace:*"
+  }
+}

@@ -1,0 +1,40 @@
+# Naadi-specific ignores. The workspace-level /.gitignore covers most generic
+# patterns (node_modules, dist, env files, OS junk); this file layers on
+# Astro / Bun / WebGPU specifics that are scoped to this subproject.
+
+# Build outputs
+node_modules/
+dist/
+.astro/
+.turbo/
+.next/
+.vite/
+.cache/
+.output/
+build/
+out/
+
+# Bun / npm / pnpm runtime junk
+.npm/
+.pnpm-store/
+.yarn/cache/
+
+# Note: bun.lock IS tracked so peers (and CI) get reproducible installs.
+
+# Env + local secrets — .env.example IS tracked.
+.env
+.env.*
+!.env.example
+
+# Logs + temp files
+*.log
+*.tmp
+.DS_Store
+
+# Astro/Vite generated wasm copies that don't belong in the source tree
+# (Loro's WASM is shipped from node_modules; dist/ already excluded above).
+
+# VS Code per-folder workspace settings — keep workspace-shared configs only.
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json

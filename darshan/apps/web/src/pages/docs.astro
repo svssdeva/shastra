@@ -1,0 +1,375 @@
+---
+import '../styles/global.css';
+import '../styles/docs.css';
+const title = 'Darshan · Docs';
+---
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{title}</title>
+  <meta name="viewport" content="width=device-width" />
+  <meta property="og:title" content="Darshan · Documentation" />
+</head>
+<body>
+  <header class="doc-nav">
+    <a href="/" class="wordmark">Darshan<span>.</span></a>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/run">Run</a>
+      <a href="https://github.com/svssdeva" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <div class="doc-layout">
+    <main class="doc">
+    <h1>Darshan · Walkthrough</h1>
+    <p class="lede">
+      A pluggable, browser-only vision-agent shell. One UI hosts swappable pipelines on top of
+      swappable inference backends — all running locally in your tab.
+    </p>
+
+    <h2 id="quickstart">1. Quickstart</h2>
+
+    <p>Three commands:</p>
+    <pre><code>cd darshan
+bun install
+bun run build:wasm   # one-time: compiles Rust → wasm32 (≈10s)
+bun dev              # → http://localhost:4321</code></pre>
+
+    <p>Then open <a href="/run">/run</a>, pick a pipeline and a backend, and drop a file.</p>
+
+    <p><strong>Requirements:</strong></p>
+    <ul>
+      <li><strong>Bun 1.3+</strong> for the JS workspace.</li>
+      <li><strong>Rustup with the <code>wasm32-unknown-unknown</code> target</strong> for the Candle (WASM) backend.
+        <code>rustup target add wasm32-unknown-unknown</code> if missing.</li>
+      <li><strong>WebGPU-capable browser</strong> for full speed: Chrome 121+, Edge, Arc, Brave, or Safari 26+.
+        Firefox and older Safari fall back to WASM (~3× slower).</li>
+    </ul>
+
+    <h2 id="concepts">2. Concepts</h2>
+
+    <h3>Pipeline</h3>
+    <p>
+      A <code>Pipeline&lt;TInput, TOutput&gt;</code> is a task. It takes a file (or video), runs whatever
+      detection / recognition / scoring logic it needs, and yields a typed result. Pipelines compose
+      one or more loaded models behind their own <code>load</code> / <code>process</code> / <code>dispose</code> lifecycle.
+    </p>
+    <p>The three pipelines today:</p>
+    <ul>
+      <li><strong>echo</strong> — seam test. Reads the dropped file, returns sha256 + metadata. No ML.</li>
+      <li><strong>ocr</strong> — Devanagari OCR + Hindi→English translation. Proposes text regions, recognizes each with Tesseract.js (Hindi traineddata), translates with Opus-MT via transformers.js.</li>
+      <li><strong>dashcam</strong> — driving-clip incident extractor. Samples 5 FPS, runs YOLOv10n, scores looming-vehicle / pedestrian-close / traffic-control runs, emits clip ranges.</li>
+    </ul>
+
+    <h3>Backend</h3>
+    <p>
+      An <code>InferenceBackend</code> is a runtime — it knows how to fetch a <code>ModelSpec</code>, load
+      weights, and run the resulting model on a tensor or image. Pipelines never call backends directly
+      with framework specifics; they receive a <code>LoadedModel</code>.
+    </p>
+    <p>The four backends today:</p>
+    <ul>
+      <li><strong>Mock</strong> — deterministic JS, no real ML. Proves the seam end-to-end.</li>
+      <li><strong>transformers.js</strong> — <code>@huggingface/transformers</code> v4. WebGPU preferred, WASM fallback. Powers the OCR pipeline's translation step (Opus-MT-hi-en). Recognition itself uses Tesseract.js — outside the backend abstraction because Tesseract has its own worker pool and traineddata format, not a HuggingFace <code>ModelSpec</code>.</li>
+      <li><strong>ORT Web</strong> — <code>onnxruntime-web</code> with WebGPU EP. Powers dashcam (raw ONNX YOLO).</li>
+      <li><strong>Candle (WASM)</strong> — Rust crate compiled to <code>wasm32-unknown-unknown</code>, loaded as a raw WebAssembly module without wasm-bindgen. Today the Rust <code>infer()</code> body is a tagged echo; phase 5 swaps it for <code>candle-core</code> under the same ABI.</li>
+    </ul>
+
+    <h3>The seam</h3>
+    <p>
+      The whole project is about the boundary between Pipeline and Backend. The
+      <code>InferenceBackend</code> interface is identical whether it wraps transformers.js, ORT, or a
+      hand-rolled Rust crate. The UI has no idea which one is loaded. This is what the Candle (WASM)
+      backend proves: the same TypeScript can call into Rust over linear memory without any framework
+      assumptions baked into the shell.
+    </p>
+
+    <h3>Worker offload</h3>
+    <p>
+      Echo and OCR run inside a dedicated <code>Worker</code>. The main thread sees only a
+      <code>PipelineClient</code> proxy that posts messages and resolves promises. Network and inference
+      progress stream back as <code>progress</code> events on the same channel. Dashcam is the exception
+      — it decodes <code>&lt;video&gt;</code> which has no equivalent in <code>DedicatedWorkerGlobalScope</code>,
+      so it runs on the main thread. GPU compute still goes through the WebGPU execution provider, so
+      the main thread blocks only on per-frame glue (negligible).
+    </p>
+
+    <h3>Cache API privacy proof</h3>
+    <p>
+      Model weights are fetched once and cached locally — never re-fetched. transformers.js writes
+      to <code>caches.open('darshan-models-v1')</code> for its HuggingFace downloads (Opus-MT, YOLO
+      ONNX). Tesseract.js writes <code>hin.traineddata</code> to its own IndexedDB cache. To verify
+      privacy hands-on: load <a href="/run">/run</a>, run an OCR pass to populate both caches,
+      enable airplane mode, drop a different image — it still works.
+    </p>
+
+    <h3>Capabilities row</h3>
+    <p>
+      At the bottom of <a href="/run">/run</a>, three pills show <code>webgpu</code> / <code>webgl</code> / <code>wasm</code> ✓/✗ for this browser.
+      If <code>webgpu ✗</code>, transformers.js and ORT both fall back to WASM EP automatically — slower
+      but works everywhere.
+    </p>
+
+    <h2 id="matrix">3. Pipeline × Backend matrix</h2>
+
+    <p>The Backend picker auto-disables incompatible options once a pipeline is selected:</p>
+
+    <table>
+      <thead>
+        <tr><th>Pipeline</th><th>Mock</th><th>transformers.js</th><th>ORT Web</th><th>Candle (WASM)</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>echo</td>
+          <td><span class="yes">✓ default</span></td>
+          <td><span class="no">disabled</span></td>
+          <td><span class="no">disabled</span></td>
+          <td><span class="seam">✓ seam proof</span></td>
+        </tr>
+        <tr>
+          <td>ocr</td>
+          <td><span class="no">disabled</span></td>
+          <td><span class="yes">✓ default</span></td>
+          <td><span class="no">disabled</span></td>
+          <td><span class="no">disabled</span></td>
+        </tr>
+        <tr>
+          <td>dashcam</td>
+          <td><span class="no">disabled</span></td>
+          <td><span class="no">disabled</span></td>
+          <td><span class="yes">✓ default</span></td>
+          <td><span class="no">disabled</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>echo + Mock</h3>
+    <p>Worker → fake load (~100ms) → reads dropped file → sha256 + mime + bytes. Verifies the worker pipeline end-to-end without any real ML. Zero network.</p>
+
+    <h3>echo + Candle (WASM)</h3>
+    <p>
+      Worker → fetches <code>/wasm/darshan-inference-core.wasm</code> (~10 kB, one-time) → instantiates raw
+      module → reads first 64 KB of the dropped file → passes to Rust <code>infer()</code>. The Rust side returns
+      <code>darshan/wasm:&lt;version&gt;:&lt;input bytes&gt;</code>; the EchoPipeline discards that and emits its own
+      sha256 summary. The seam ran for real.
+    </p>
+
+    <h3>ocr + transformers.js</h3>
+    <p>
+      Worker → lazy-imports two runtimes: <code>tesseract.js</code> for recognition and
+      <code>@huggingface/transformers</code> for translation. First run downloads:
+    </p>
+    <ul>
+      <li><strong>Tesseract Hindi traineddata</strong> (<code>hin.traineddata</code>, ~5 MB) — actually trained on Devanagari, unlike English-only TrOCR.</li>
+      <li><code>Xenova/opus-mt-hi-en</code> (~80 MB) — Hindi → English translation, routed through the standard <code>InferenceBackend</code> seam.</li>
+    </ul>
+    <p>
+      Then per dropped image: <code>createImageBitmap</code> → horizontal-projection region proposer
+      (Devanagari shirorekha-aware) → per-region crop → Tesseract recognize → Opus-MT translate →
+      SVG overlay with saffron-orange bboxes. Click a box (or list item) to reveal recognized +
+      translated text for that region.
+    </p>
+    <div class="callout">
+      <p><strong>Recognizer choice.</strong> v0.2 used Microsoft TrOCR via transformers.js — but TrOCR-small-printed was trained on Latin script and produced receipt-shaped hallucinations on real Devanagari. v0.3 swapped to Tesseract.js with <code>hin.traineddata</code>, which is actually trained on the script. Printed Devanagari now works well; handwriting is still imperfect — no engine, online or offline, handles cursive Devanagari with high accuracy. The translator stays as transformers.js Opus-MT so the seam claim still holds for that half of the pipeline. Configure with <code>new OcrPipeline(&lbrace; recognizerLanguage: 'hin+eng' &rbrace;)</code> to mix Hindi + Latin pages.</p>
+    </div>
+
+    <h3>dashcam + ORT Web</h3>
+    <p>
+      Main thread (not worker — needs <code>&lt;video&gt;</code>) → lazy-imports <code>onnxruntime-web</code> →
+      first run downloads <code>onnx-community/yolov10n</code> int8 (~2.6 MB). Per dropped clip:
+      HTMLVideoElement decodes → sampled at 5 FPS via <code>requestVideoFrameCallback</code> →
+      letterbox 640×640 CHW Float32 → ORT (WebGPU EP) → YOLOv10 decode (NMS-free, trim by
+      score) → un-letterbox → per-frame summary → incident scoring run-length.
+    </p>
+    <p>
+      Result: video player with timeline bar overlaying colored incident marks (orange = looming
+      vehicle, red = pedestrian close, yellow = traffic control). Click a mark to seek.
+    </p>
+
+    <h2 id="files">4. What file to drop</h2>
+
+    <table>
+      <thead>
+        <tr><th>Pipeline</th><th>File types</th><th>What works best</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>echo</td>
+          <td>any</td>
+          <td>Any file under ~100 MB. Bytes are touched only for sha256 + (with WASM) the first 64 KB.</td>
+        </tr>
+        <tr>
+          <td>ocr</td>
+          <td>JPG / PNG / WEBP</td>
+          <td>Clean scan of Devanagari text — dark ink on light background, ~600 px tall, distinct horizontal lines. Tesseract handles printed Devanagari well; cursive handwriting is genuinely hard for every OCR engine.</td>
+        </tr>
+        <tr>
+          <td>dashcam</td>
+          <td>MP4 / WEBM / MOV</td>
+          <td>720p dashcam-angle driving footage, 5–60 s. Cars, pedestrians, stop signs in frame. Avoid 4K — sampling cost scales with source resolution.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="flow">5. Request flow</h2>
+
+    <p>OCR run, top-to-bottom:</p>
+
+    <pre><code>┌─ /run page (Astro, Preact island) ─────────────────────────┐
+│  Shell.tsx                                                  │
+│    DropZone ──onFile──► PipelineClient.process()            │
+│      │                                                       │
+│      │ Picker(pipeline) Picker(backend) ProgressMeter        │
+│      ▼                                                       │
+│  postMessage &lbrace; kind:'process', fileBlob, ... &rbrace; │
+└────────────────────────────────────────────────────────────┘
+              │ worker boundary
+              ▼
+┌─ inference worker (Web Worker) ────────────────────────────┐
+│  workers/inference.ts                                       │
+│    registerBackend('transformers-js', () => …)              │
+│    registerPipeline('ocr', () => new OcrPipeline())         │
+│    bootstrap()                                              │
+│                                                              │
+│  OcrPipeline.process(file)                                  │
+│    createImageBitmap → proposeRegions → per-region crop     │
+│       │                                                      │
+│       ▼                                                      │
+│    tesseract.recognize(crop)  ◄── tesseract.js (hin)         │
+│       │                                                      │
+│       ▼                                                      │
+│    LoadedModel.run(text)      ◄── TransformersJsBackend     │
+│       │                                                      │
+│       ▼                                                      │
+│    transformers.js Opus-MT (WebGPU EP)                       │
+│       │                                                      │
+│       ▼                                                      │
+│    yield &lbrace; regions, ... &rbrace;   ─── postMessage(result) │
+└────────────────────────────────────────────────────────────┘
+              │
+              ▼
+       ResultPanel + OcrCanvas SVG overlay</code></pre>
+
+    <h2 id="layout">6. Repo layout</h2>
+
+    <pre><code>darshan/
+├─ apps/web/                              Astro + Preact + Tailwind shell
+│  ├─ src/components/Shell.tsx            pipeline + backend pickers, result rendering
+│  ├─ src/workers/inference.ts            worker entry; registers backends + pipelines
+│  ├─ src/pages/&lbrace;index,run,docs&rbrace;.astro    landing + agent + this page
+│  └─ public/wasm/darshan-inference-core.wasm   Rust/WASM artifact (built)
+└─ packages/
+   ├─ inference-core/                     Backend + Pipeline interfaces, worker host, mock, transformers, ort
+   ├─ inference-core-wasm/                Candle backend + Rust crate (wasm32, no wasm-bindgen)
+   ├─ pipeline-ocr/                       Devanagari OCR + translation (Tesseract.js + Opus-MT)
+   ├─ pipeline-dashcam/                   YOLOv10n + optical-flow incident scoring + timeline
+   └─ ui-kit/                             DropZone, Picker, ProgressMeter, ResultPanel, OcrCanvas, TimelineScrubber</code></pre>
+
+    <h2 id="develop">7. Develop</h2>
+
+    <pre><code># lint everything (biome)
+bun run lint
+
+# run all package tests (bun test)
+bun --filter '*' test
+
+# build the static site
+bun --filter @darshan/web build
+
+# rebuild the Rust → WASM core
+bun run build:wasm</code></pre>
+
+    <p>
+      Biome handles lint + format. Single quotes, 100-char width, 2-space indent, semicolons.
+      No ESLint, no Prettier.
+    </p>
+
+    <p>
+      All packages are <code>type: "module"</code> with <code>main: "./src/index.ts"</code> and no build step
+      — Vite + Bun read the TypeScript directly. The only thing that compiles is the Rust crate.
+    </p>
+
+    <h2 id="troubleshooting">8. Troubleshooting</h2>
+
+    <h3>OCR returns empty or low-quality recognized text</h3>
+    <p>
+      You're on Candle (WASM) — that backend doesn't do OCR (yet). Switch to transformers.js.
+      If you're already on transformers.js with a Devanagari image: the recognizer is Tesseract
+      with <code>hin.traineddata</code> — it handles printed Devanagari well but struggles on
+      cursive handwriting. The regions in the saffron overlay are still correct; the text just
+      won't be perfect.
+    </p>
+    <p>
+      For other scripts: pass <code>new OcrPipeline(&lbrace; recognizerLanguage: 'eng' &rbrace;)</code>
+      for English, <code>'hin+eng'</code> for mixed pages, etc. See the <a href="https://github.com/naptha/tessdata">Tesseract language packs</a> list.
+    </p>
+
+    <h3>Dashcam stalls on a 4K clip</h3>
+    <p>
+      Re-encode to 720p first, or wait — ORT WebGPU EP can handle it, but per-frame YOLO scales with
+      input size after the letterbox downscale. Phase 5 work would add WebCodecs for parallel
+      frame decode.
+    </p>
+
+    <h3>“unsupported input type” from transformers.js</h3>
+    <p>
+      This was a real bug — fixed in May 2026 by passing inputs positionally and converting images
+      to data URLs. After the Tesseract swap, transformers.js only sees text inputs for translation,
+      so this class of bug is no longer reachable through OCR. If you still see it (e.g., calling
+      <code>TransformersJsBackend</code> directly), paste the full console stack.
+    </p>
+
+    <h3>Tesseract hangs at "loading language traineddata"</h3>
+    <p>
+      <code>tesseract.js</code> fetches <code>hin.traineddata</code> (~5 MB) from
+      <a href="https://tessdata.projectnaptha.com/4.0.0">tessdata.projectnaptha.com</a> on first
+      run. If your network blocks that origin, override with
+      <code>new OcrPipeline(&lbrace; recognizerLanguage: 'hin' &rbrace;)</code> after vendoring the
+      traineddata locally and pointing <code>createWorker</code>'s <code>langPath</code> at it. The
+      pipeline can also bundle the data into <code>public/</code> if you want a fully self-hosted
+      build.
+    </p>
+
+    <h3>WASM 404</h3>
+    <p>
+      Run <code>bun run build:wasm</code>. The artifact must land at <code>apps/web/public/wasm/darshan-inference-core.wasm</code>.
+      It's not checked into git; you build it locally.
+    </p>
+
+    <h3>ORT Web: "no available backend found"</h3>
+    <p>
+      Both EPs (WebGPU + WASM) failed to load <code>onnxruntime-web</code>'s runtime
+      <code>.wasm</code> blob. Root cause: Vite's dep optimizer was pre-bundling
+      <code>onnxruntime-web</code> into <code>/node_modules/.vite/deps/</code>, which broke the
+      sibling-path lookup ORT uses (<code>ort.bundle.min.mjs</code> dynamic-imports
+      <code>./ort-wasm-simd-threaded.jsep.mjs</code> which itself does
+      <code>new URL('./...wasm', import.meta.url)</code>). Fix: <code>optimizeDeps.exclude:
+      ['onnxruntime-web']</code> in <code>astro.config.mjs</code> so ORT stays in its native
+      layout. We also pin <code>ort.env.wasm.numThreads = 1</code> to skip the multi-threaded
+      build (which needs COOP+COEP cross-origin-isolation headers we don't set).
+    </p>
+
+    <h3>“No WebGPU adapter”</h3>
+    <p>
+      Some VMs, remote desktops, and older mobile browsers gate WebGPU behind a flag. Everything
+      still works via WASM fallback at roughly 3× slowdown.
+    </p>
+    </main>
+
+    <aside class="toc" aria-label="Table of contents">
+      <span class="caption-uppercase">Contents</span>
+      <ol>
+        <li><a href="#quickstart">1. Quickstart</a></li>
+        <li><a href="#concepts">2. Concepts</a></li>
+        <li><a href="#matrix">3. Pipeline × Backend</a></li>
+        <li><a href="#files">4. What file to drop</a></li>
+        <li><a href="#flow">5. Request flow</a></li>
+        <li><a href="#layout">6. Repo layout</a></li>
+        <li><a href="#develop">7. Develop</a></li>
+        <li><a href="#troubleshooting">8. Troubleshooting</a></li>
+      </ol>
+    </aside>
+  </div>
+</body>
+</html>
