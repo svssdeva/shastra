@@ -76,6 +76,12 @@ after handshake); the Loro CRDT keeps everyone in sync; each peer's GPU
 renders the shared shader independently. Cursors and nicknames sync as
 ephemeral awareness frames. Snapshots persist to per-browser IndexedDB.
 
+A **Preset…** dropdown above the editor swaps in bundled shaders (cosine
+rainbow, plasma, mandelbrot, voronoi, cyberpunk avatar, anime waifu,
+minecraft planet, hyperspace, …) and a **zoom slider** in the Canvas pane
+drives a `u.zoom` uniform read by the bundled presets (default 1.00×,
+auto-resets on preset switch).
+
 Requires a WebGPU **and** WebRTC capable browser — desktop Chrome / Edge /
 Arc / Brave / Safari 26+. Full design, security model, and config knobs in
 [`naadi/README.md`](./naadi/README.md).
