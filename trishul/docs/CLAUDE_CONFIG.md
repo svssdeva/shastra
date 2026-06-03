@@ -166,27 +166,37 @@ GUI applications often don't inherit your shell's `PATH`. If you see "command no
 
 ## 5. Claude Code (CLI)
 
-Project-local (preferred):
+Easiest — let the CLI register it (run from your project directory):
 
 ```bash
-mkdir -p .claude
-cat > .claude/config.json <<'EOF'
+# local scope: this project, this user, not committed (stored in ~/.claude.json)
+claude mcp add trishul -- "$(which trishul-mcp)"
+
+# project scope: writes a committable .mcp.json at the repo root
+claude mcp add -s project trishul -- trishul-mcp
+
+# user scope: available in every project for this user
+claude mcp add -s user trishul -- "$(which trishul-mcp)"
+```
+
+Or hand-write a `.mcp.json` at the repo root (project scope, committable):
+
+```json
 {
   "mcpServers": {
     "trishul": { "command": "trishul-mcp" }
   }
 }
-EOF
 ```
 
-Or globally:
+> GUI/launcher-spawned `claude` may not inherit your shell `PATH`. If health shows
+> "failed to connect", use the absolute path as `command` (e.g. `~/.cargo/bin/trishul-mcp`).
 
-```bash
-mkdir -p ~/.claude
-# same JSON in ~/.claude/config.json
-```
+Confirm with `claude mcp list` (expect `trishul: … - ✓ Connected`). Tools become
+available the next time you start `claude` in that directory — no daemon to restart.
 
-Tools become available the next time you run `claude` in that directory — no daemon to restart.
+> Older Trishul docs pointed at `.claude/config.json`; current Claude Code does **not**
+> read that path for MCP servers. Use `claude mcp add` or `.mcp.json` as above.
 
 ---
 

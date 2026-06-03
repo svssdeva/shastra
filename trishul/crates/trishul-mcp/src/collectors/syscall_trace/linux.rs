@@ -11,8 +11,11 @@ use nix::libc;
 use super::{PidSummary, SyscallCount};
 use crate::types::TrishulError;
 
+// NOTE: must use aya's aligned variant — `object`'s ELF parser requires the
+// byte slice to be aligned, and `std::include_bytes!` yields alignment 1,
+// which makes `Ebpf::load` fail with "error parsing ELF data".
 const TRISHUL_BPF: &[u8] =
-    include_bytes!(concat!(env!("OUT_DIR"), "/trishul-syscall-trace"));
+    aya::include_bytes_aligned!(concat!(env!("OUT_DIR"), "/trishul-syscall-trace"));
 
 pub async fn collect(
     duration: Duration,

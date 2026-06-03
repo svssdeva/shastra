@@ -45,6 +45,21 @@ getcap "$(which trishul-mcp)"
 # /home/.../trishul-mcp cap_bpf,cap_perfmon=eip
 ```
 
+> **tracefs caveat (Ubuntu/Zorin and other locked-down distros).** `CAP_BPF` +
+> `CAP_PERFMON` grant the bpf/perf *syscalls*, but **not** filesystem DAC. Attaching
+> the tracepoint reads `/sys/kernel/tracing/events/raw_syscalls/sys_enter/id`, which
+> ships as `0440 root:root` on some distros. A non-root process then fails with
+> `attach BPF: .../sys_enter/id` (permission denied) **even with the caps above**.
+> Options, narrowest first:
+> - **Verify / occasional use:** run under `sudo` (option B) — root bypasses the DAC.
+> - **Persistent, narrower-than-root:** `sudo chmod -R o+rX /sys/kernel/tracing/events`
+>   (resets on reboot/remount; persist via a `systemd-tmpfiles` or `udev` rule).
+> - **Persistent, broad — not recommended for an MCP server:** add `cap_dac_override`
+>   (`setcap cap_bpf,cap_perfmon,cap_dac_override=eip`). This lets the (LLM-driven)
+>   binary bypass *all* file permissions — treat as a real escalation.
+>
+> Distros that mount tracefs world-readable (id files `0444`) need none of this.
+
 ### B. Per-session `sudo`
 
 ```bash
