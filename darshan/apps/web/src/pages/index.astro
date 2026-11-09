@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 const title = 'Darshan · Local-first vision agent in your browser';
+const base = import.meta.env.BASE_URL; // e.g. /projects/darshan/ — trailing slash included
 ---
 <html lang="en">
 <head>
@@ -91,11 +92,11 @@ const title = 'Darshan · Local-first vision agent in your browser';
 </head>
 <body>
   <header class="top-nav">
-    <a href="/" class="wordmark">Darshan<span>.</span></a>
+    <a href={base} class="wordmark">Darshan<span>.</span></a>
     <nav>
-      <a href="/docs">Docs</a>
+      <a href={`${base}docs`}>Docs</a>
       <a href="https://github.com/svssdeva" target="_blank" rel="noopener">GitHub</a>
-      <a href="/run" class="btn-primary">Open agent →</a>
+      <a href={`${base}run`} class="btn-primary">Open agent →</a>
     </nav>
   </header>
 
@@ -109,7 +110,7 @@ const title = 'Darshan · Local-first vision agent in your browser';
           renders next to the file you dropped. <em>Darśana</em> — sight, but local.
         </p>
         <div class="cta-row">
-          <a href="/run" class="btn-primary">Open agent →</a>
+          <a href={`${base}run`} class="btn-primary">Open agent →</a>
           <a href="https://github.com/svssdeva" target="_blank" rel="noopener" class="btn-secondary">View source</a>
         </div>
       </div>
@@ -164,7 +165,7 @@ const title = 'Darshan · Local-first vision agent in your browser';
     <section>
       <div class="cta-band">
         <h2>Drop a file. Watch the model run.</h2>
-        <a href="/run" class="btn-on-yellow">Open agent →</a>
+        <a href={`${base}run`} class="btn-on-yellow">Open agent →</a>
       </div>
     </section>
 

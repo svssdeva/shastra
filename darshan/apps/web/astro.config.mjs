@@ -3,6 +3,10 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({
+  // Served from a sub-path behind CloudFront: beyondcodekarma.in/projects/darshan/.
+  // `base` prefixes all Astro-emitted asset URLs; hand-written links/fetches (and the
+  // WASM artifact path) must use import.meta.env.BASE_URL.
+  base: '/projects/darshan/',
   integrations: [preact({ compat: true })],
   vite: {
     plugins: [tailwindcss()],

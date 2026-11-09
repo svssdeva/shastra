@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import '../styles/docs.css';
 const title = 'Darshan · Docs';
+const base = import.meta.env.BASE_URL; // e.g. /projects/darshan/ — trailing slash included
 ---
 <html lang="en">
 <head>
@@ -12,10 +13,10 @@ const title = 'Darshan · Docs';
 </head>
 <body>
   <header class="doc-nav">
-    <a href="/" class="wordmark">Darshan<span>.</span></a>
+    <a href={base} class="wordmark">Darshan<span>.</span></a>
     <nav>
-      <a href="/">Home</a>
-      <a href="/run">Run</a>
+      <a href={base}>Home</a>
+      <a href={`${base}run`}>Run</a>
       <a href="https://github.com/svssdeva" target="_blank" rel="noopener">GitHub</a>
     </nav>
   </header>
@@ -36,7 +37,7 @@ bun install
 bun run build:wasm   # one-time: compiles Rust → wasm32 (≈10s)
 bun dev              # → http://localhost:4321</code></pre>
 
-    <p>Then open <a href="/run">/run</a>, pick a pipeline and a backend, and drop a file.</p>
+    <p>Then open <a href={`${base}run`}>/run</a>, pick a pipeline and a backend, and drop a file.</p>
 
     <p><strong>Requirements:</strong></p>
     <ul>
@@ -100,13 +101,13 @@ bun dev              # → http://localhost:4321</code></pre>
       Model weights are fetched once and cached locally — never re-fetched. transformers.js writes
       to <code>caches.open('darshan-models-v1')</code> for its HuggingFace downloads (Opus-MT, YOLO
       ONNX). Tesseract.js writes <code>hin.traineddata</code> to its own IndexedDB cache. To verify
-      privacy hands-on: load <a href="/run">/run</a>, run an OCR pass to populate both caches,
+      privacy hands-on: load <a href={`${base}run`}>/run</a>, run an OCR pass to populate both caches,
       enable airplane mode, drop a different image — it still works.
     </p>
 
     <h3>Capabilities row</h3>
     <p>
-      At the bottom of <a href="/run">/run</a>, three pills show <code>webgpu</code> / <code>webgl</code> / <code>wasm</code> ✓/✗ for this browser.
+      At the bottom of <a href={`${base}run`}>/run</a>, three pills show <code>webgpu</code> / <code>webgl</code> / <code>wasm</code> ✓/✗ for this browser.
       If <code>webgpu ✗</code>, transformers.js and ORT both fall back to WASM EP automatically — slower
       but works everywhere.
     </p>

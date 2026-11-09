@@ -4,6 +4,7 @@ import '@darshan/ui-kit/styles.css';
 import { Shell } from '../components/Shell.tsx';
 
 const title = 'Darshan · Run';
+const base = import.meta.env.BASE_URL; // e.g. /projects/darshan/ — trailing slash included
 ---
 <html lang="en">
 <head>
@@ -34,10 +35,10 @@ const title = 'Darshan · Run';
 </head>
 <body>
   <header class="run-nav">
-    <a href="/" class="wordmark">Darshan<span>.</span></a>
+    <a href={base} class="wordmark">Darshan<span>.</span></a>
     <nav>
-      <a href="/">← Home</a>
-      <a href="/docs">Docs</a>
+      <a href={base}>← Home</a>
+      <a href={`${base}docs`}>Docs</a>
       <a href="https://github.com/svssdeva" target="_blank" rel="noopener">GitHub</a>
     </nav>
   </header>

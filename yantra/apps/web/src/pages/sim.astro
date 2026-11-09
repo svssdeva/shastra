@@ -1,6 +1,7 @@
 ---
 import '../styles/tokens.css';
 import YantraApp from '../components/yantra/YantraApp';
+const base = import.meta.env.BASE_URL; // e.g. /projects/yantra/ — trailing slash included
 ---
 <html lang="en">
 <head>
@@ -15,9 +16,9 @@ import YantraApp from '../components/yantra/YantraApp';
 </head>
 <body>
   <header class="top-nav">
-    <a href="/" class="wordmark">Yantra<span>.</span></a>
+    <a href={base} class="wordmark">Yantra<span>.</span></a>
     <nav>
-      <a href="/">Home</a>
+      <a href={base}>Home</a>
       <a href="https://github.com/svssdeva" target="_blank" rel="noopener">GitHub</a>
     </nav>
   </header>

@@ -80,8 +80,8 @@ export default function NaadiRoom(): JSX.Element {
 
   useEffect(() => {
     if (!room) {
-      // Bad/missing hash → bounce to landing.
-      window.location.replace('/');
+      // Bad/missing hash → bounce to landing (base-aware: site is served from a sub-path).
+      window.location.replace(import.meta.env.BASE_URL);
       return;
     }
     const onHashChange = () => {
@@ -279,7 +279,7 @@ export default function NaadiRoom(): JSX.Element {
     // Fragment-based room URL. Setting the hash fires hashchange which the
     // listener above turns into a full reload, so the doc/network reset
     // cleanly without us having to teardown manually here.
-    window.location.assign(`/r#${newId}`);
+    window.location.assign(`${import.meta.env.BASE_URL}r#${newId}`);
   }, [naadi]);
 
   if (!room) {

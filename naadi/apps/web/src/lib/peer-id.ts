@@ -16,8 +16,15 @@ export function getOrCreatePeerId(): string {
   return id;
 }
 
+// Production builds talk to the deployed signaling server over TLS (wss) — required because the
+// site is served over HTTPS (a ws:// connection would be blocked as mixed content). Dev keeps the
+// local server. An explicit PUBLIC_NAADI_SIGNAL_URL env var overrides either.
+const DEFAULT_SIGNAL_URL = import.meta.env.PROD
+  ? 'wss://signal.beyondcodekarma.in/ws'
+  : 'ws://localhost:3030/ws';
+
 export const SIGNAL_URL: string =
-  (import.meta.env.PUBLIC_NAADI_SIGNAL_URL as string | undefined) ?? 'ws://localhost:3030/ws';
+  (import.meta.env.PUBLIC_NAADI_SIGNAL_URL as string | undefined) ?? DEFAULT_SIGNAL_URL;
 
 export function newRoomId(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16));

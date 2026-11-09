@@ -96,3 +96,5 @@ TXT.txt
 # Kept on disk for local agent use; not part of the codebase.
 CLAUDE.md
 docs/superpowers/
+# Local deploy config (bucket/dist id)
+deploy/deploy-projects.env

@@ -21,6 +21,14 @@ export class WasmCandleBackend implements InferenceBackend {
   readonly label = 'Candle (WASM)';
 
   private module?: WasmModule;
+
+  /**
+   * @param wasmPath URL to fetch the `.wasm` artifact from. The web app passes a base-path-aware
+   *   URL (e.g. `/projects/darshan/wasm/...`) since the site is served from a sub-path. When
+   *   omitted, the loader falls back to its own root-relative default (used by tests).
+   */
+  constructor(private readonly wasmPath?: string) {}
+
   private readonly _capabilities: BackendCapabilities = {
     webgpu: false,
     webgl: false,
@@ -41,7 +49,7 @@ export class WasmCandleBackend implements InferenceBackend {
       total: 1,
       message: 'loading darshan/wasm module',
     });
-    this.module ??= await loadWasmModule();
+    this.module ??= await loadWasmModule(this.wasmPath);
     opts.onProgress?.({
       phase: 'warmup',
       loaded: 1,

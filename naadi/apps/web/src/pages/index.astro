@@ -2,6 +2,7 @@
 import '../styles/global.css';
 export const prerender = true;
 const title = 'Naadi · Multiplayer WebGPU shader sandbox';
+const base = import.meta.env.BASE_URL; // e.g. /projects/naadi/ — trailing slash included
 ---
 <html lang="en">
 <head>
@@ -13,9 +14,9 @@ const title = 'Naadi · Multiplayer WebGPU shader sandbox';
 </head>
 <body>
   <header class="top-nav">
-    <a href="/" class="wordmark">Naadi<span>.</span></a>
+    <a href={base} class="wordmark">Naadi<span>.</span></a>
     <nav>
-      <a href="/docs">Docs</a>
+      <a href={`${base}docs`}>Docs</a>
       <a href="https://github.com/svssdeva" target="_blank" rel="noopener">GitHub</a>
       <button id="create-room" type="button" class="btn-primary">Create room →</button>
     </nav>
@@ -107,7 +108,8 @@ const title = 'Naadi · Multiplayer WebGPU shader sandbox';
     }
     function go() {
       // Room ID lives in the URL fragment so /r stays a single static page.
-      window.location.assign(`/r#${newRoomId()}`);
+      // BASE_URL is replaced by Vite (this is a processed, non-inline script).
+      window.location.assign(`${import.meta.env.BASE_URL}r#${newRoomId()}`);
     }
     for (const id of ['create-room', 'create-room-hero', 'create-room-cta']) {
       document.getElementById(id)?.addEventListener('click', go);

@@ -7,6 +7,10 @@ export default defineConfig({
   // S3, Cloudflare Pages, even file://. Room IDs live in the URL fragment
   // (/r#<32hex>) so we don't need a dynamic server route.
   output: 'static',
+  // Served from a sub-path behind CloudFront: beyondcodekarma.in/projects/naadi/.
+  // Room IDs stay in the URL fragment (/r#<32hex>) so they're unaffected; but `base`
+  // prefixes asset URLs and hand-written links/redirects must use import.meta.env.BASE_URL.
+  base: '/projects/naadi/',
   integrations: [preact({ compat: true })],
   vite: {
     plugins: [tailwindcss()],

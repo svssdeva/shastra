@@ -180,7 +180,7 @@ export default function YantraApp() {
     if (!fx) return;
     (async () => {
       try {
-        const r = await fetch(`/fixtures/${fx}.stl`);
+        const r = await fetch(`${import.meta.env.BASE_URL}fixtures/${fx}.stl`);
         if (!r.ok) {
           setError(`fixture not found: ${fx}`);
           return;

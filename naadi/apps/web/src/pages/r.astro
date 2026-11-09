@@ -7,6 +7,7 @@ import NaadiRoom from '../components/NaadiRoom';
 export const prerender = true;
 
 const title = 'naadi · room';
+const base = import.meta.env.BASE_URL; // e.g. /projects/naadi/ — trailing slash included
 ---
 <html lang="en">
 <head>
@@ -17,9 +18,9 @@ const title = 'naadi · room';
 </head>
 <body>
   <header class="top-nav">
-    <a href="/" class="wordmark">Naadi<span>.</span></a>
+    <a href={base} class="wordmark">Naadi<span>.</span></a>
     <nav>
-      <a href="/docs">Docs</a>
+      <a href={`${base}docs`}>Docs</a>
       <span class="badge-pill font-[var(--font-mono)]" id="room-badge">room · …</span>
       <button type="button" class="btn-secondary" id="copy-link">Copy link</button>
     </nav>
@@ -27,13 +28,14 @@ const title = 'naadi · room';
 
   <NaadiRoom client:only="preact" />
 
-  <script is:inline>
+  <script is:inline define:vars={{ base }}>
     // Validate the fragment up front. Bad / missing hash → bounce to landing
-    // before the Preact island even hydrates.
+    // before the Preact island even hydrates. `base` is injected by Astro
+    // (define:vars) because this inline script isn't processed by Vite.
     (() => {
       const m = window.location.hash.match(/^#([0-9a-f]{32})$/);
       if (!m) {
-        window.location.replace('/');
+        window.location.replace(base);
         return;
       }
       const room = m[1];

@@ -1,0 +1,8 @@
+# Caddy reverse proxy for the naadi signaling server.
+# Caddy auto-provisions a Let's Encrypt cert for the domain (HTTP-01), so the DNS A record for
+# signal.beyondcodekarma.in must already point at this host's public IP before Caddy starts.
+# WebSocket upgrades are proxied transparently — no extra config needed.
+signal.beyondcodekarma.in {
+	encode zstd gzip
+	reverse_proxy localhost:3030
+}

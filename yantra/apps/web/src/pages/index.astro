@@ -1,6 +1,7 @@
 ---
 import '../styles/tokens.css';
 const title = 'Yantra · WebGPU heat simulation in your browser';
+const base = import.meta.env.BASE_URL; // e.g. /projects/yantra/ — trailing slash included
 ---
 <html lang="en">
 <head>
@@ -167,10 +168,10 @@ const title = 'Yantra · WebGPU heat simulation in your browser';
 </head>
 <body>
   <header class="top-nav">
-    <a href="/" class="wordmark">Yantra<span>.</span></a>
+    <a href={base} class="wordmark">Yantra<span>.</span></a>
     <nav>
       <a href="https://github.com/svssdeva" target="_blank" rel="noopener">GitHub</a>
-      <a href="/sim" class="btn-primary">Open simulator →</a>
+      <a href={`${base}sim`} class="btn-primary">Open simulator →</a>
     </nav>
   </header>
 
@@ -184,7 +185,7 @@ const title = 'Yantra · WebGPU heat simulation in your browser';
           conduct through the part — on your GPU, in your tab. No install. No cloud.
         </p>
         <div class="cta-row">
-          <a href="/sim" class="btn-primary">Open simulator →</a>
+          <a href={`${base}sim`} class="btn-primary">Open simulator →</a>
           <a href="https://github.com/svssdeva" target="_blank" rel="noopener" class="btn-secondary">View source</a>
         </div>
       </div>
@@ -224,43 +225,43 @@ const title = 'Yantra · WebGPU heat simulation in your browser';
         Try one of the built-in geometries.
       </h2>
       <div class="fixtures-grid">
-        <a href="/sim?fx=cube" class="fixture-card">
+        <a href={`${base}sim?fx=cube`} class="fixture-card">
           <div class="caption-uppercase">Smoke test</div>
           <h3>Cube</h3>
           <p>Pin opposite faces to 100 °C and 0 °C. Interior settles to a linear gradient.</p>
           <div class="arrow">Open →</div>
         </a>
-        <a href="/sim?fx=sphere" class="fixture-card">
+        <a href={`${base}sim?fx=sphere`} class="fixture-card">
           <div class="caption-uppercase">Symmetric</div>
           <h3>Sphere</h3>
           <p>Radial conduction. Eyeball isothermal shells in the colormap.</p>
           <div class="arrow">Open →</div>
         </a>
-        <a href="/sim?fx=fins" class="fixture-card yellow">
+        <a href={`${base}sim?fx=fins`} class="fixture-card yellow">
           <div class="caption-uppercase">Featured</div>
           <h3>Finned heatsink</h3>
           <p>The geometry the solver was built for. Watch the gradient cascade down each fin.</p>
           <div class="arrow">Open →</div>
         </a>
-        <a href="/sim?fx=cylinder" class="fixture-card">
+        <a href={`${base}sim?fx=cylinder`} class="fixture-card">
           <div class="caption-uppercase">Rod</div>
           <h3>Cylinder</h3>
           <p>Heat one end-cap, cool the other — the textbook 1-D rod problem in 3-D.</p>
           <div class="arrow">Open →</div>
         </a>
-        <a href="/sim?fx=lbracket" class="fixture-card">
+        <a href={`${base}sim?fx=lbracket`} class="fixture-card">
           <div class="caption-uppercase">Bend</div>
           <h3>L-bracket</h3>
           <p>Gradient turns a 90° elbow. The bend adds thermal resistance — you can see it.</p>
           <div class="arrow">Open →</div>
         </a>
-        <a href="/sim?fx=pipe" class="fixture-card">
+        <a href={`${base}sim?fx=pipe`} class="fixture-card">
           <div class="caption-uppercase">Hollow</div>
           <h3>Pipe</h3>
           <p>Concentric-cylinder problem. Heat flows through the wall, never through the bore.</p>
           <div class="arrow">Open →</div>
         </a>
-        <a href="/sim?fx=pyramid" class="fixture-card">
+        <a href={`${base}sim?fx=pyramid`} class="fixture-card">
           <div class="caption-uppercase">Tapered</div>
           <h3>Pyramid</h3>
           <p>Cross-section shrinks toward the apex; the gradient steepens to compensate.</p>
@@ -330,7 +331,7 @@ const title = 'Yantra · WebGPU heat simulation in your browser';
     <section>
       <div class="cta-band">
         <h2>Drop a part. Watch it heat up.</h2>
-        <a href="/sim" class="btn-on-yellow">Open simulator →</a>
+        <a href={`${base}sim`} class="btn-on-yellow">Open simulator →</a>
       </div>
     </section>
 

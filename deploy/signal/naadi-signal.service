@@ -1,0 +1,21 @@
+# systemd unit for the naadi signaling server (Bun WebSocket process).
+# Install to /etc/systemd/system/naadi-signal.service, then:
+#   sudo systemctl daemon-reload && sudo systemctl enable --now naadi-signal
+# Adjust User and WorkingDirectory to match where the repo is checked out on the host.
+[Unit]
+Description=naadi signaling server (Bun WebSocket)
+After=network.target
+
+[Service]
+Type=simple
+User=naadi
+WorkingDirectory=/opt/naadi
+Environment=PORT=3030
+# Bun binds 0.0.0.0:3030; the Lightsail firewall must expose ONLY 80/443 (Caddy) so port 3030 is
+# unreachable from the internet and Caddy (TLS) is the only path to this process.
+ExecStart=/home/naadi/.bun/bin/bun run apps/signal/src/index.ts
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

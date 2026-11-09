@@ -16,7 +16,12 @@ import { OcrPipeline } from '@darshan/pipeline-ocr';
 
 registerBackend('mock', () => new MockBackend());
 registerBackend('transformers-js', () => new TransformersJsBackend());
-registerBackend('wasm-candle', () => new WasmCandleBackend());
+// Site is served from a sub-path (e.g. /projects/darshan/), so the WASM artifact must be fetched
+// with the base prefix. import.meta.env.BASE_URL is statically replaced by Vite in this worker.
+registerBackend(
+  'wasm-candle',
+  () => new WasmCandleBackend(`${import.meta.env.BASE_URL}wasm/darshan-inference-core.wasm`),
+);
 
 registerPipeline('echo', () => new EchoPipeline());
 registerPipeline('ocr', () => new OcrPipeline());
